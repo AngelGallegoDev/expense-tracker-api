@@ -3,7 +3,7 @@ const router = express.Router()
 
 
 router.get("/health", (_req, res) => {
-    return res.status(200).json({status: "ok"})
+    return res.status(200).json({data: {status: "ok"}})
 })
 
 export default router

@@ -2,10 +2,10 @@ import express = require("express")
 const router = express.Router()
 
 router.get("/projects", (_req, res) => {
-    return res.status(200).json([{
+    return res.status(200).json([{data: {
         id: 1,
         name: "Mochila",
-        precio: 45.99}])
+        precio: 45.99}}])
 })
 
 export default router
