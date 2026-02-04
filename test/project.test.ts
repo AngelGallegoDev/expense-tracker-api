@@ -19,4 +19,10 @@ describe("GET /projects", () => {
         expect(response.status).toBe(400)
         expect(response.body).toHaveProperty("error.code", "VALIDATION_ERROR")
     })
+    it("returns meta with page and limit", async () => {
+        const response = await request(app).get("/projects?page=2&limit=1")
+        expect(response.status).toBe(200)
+        expect(response.body).toHaveProperty("meta.page", 2)
+        expect(response.body).toHaveProperty("meta.limit", 1)
+    })
 })
