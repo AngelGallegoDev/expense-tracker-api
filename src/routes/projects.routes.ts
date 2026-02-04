@@ -3,9 +3,11 @@ const router = express.Router()
 
 router.get("/", (req, res) => {
     const limitRaw = req.query.limit
-    const pageraw = req.query.page
+    const pageRaw = req.query.page
     const MAX_LIMIT = 20
     const DEFAULT_LIMIT = 10 
+    let limitFinal = DEFAULT_LIMIT
+    let pageFinal = 1
     if (limitRaw !== undefined) {
         if (typeof limitRaw !== "string") {
             return res.status(400).json({
@@ -24,9 +26,10 @@ router.get("/", (req, res) => {
                 }
             })
         }
+        limitFinal = limit
     }
-    if(pageraw !== undefined) {
-        if(typeof pageraw !== "string") {
+    if(pageRaw !== undefined) {
+        if(typeof pageRaw !== "string") {
             return res.status(400).json({
                 error: {
                     code: "VALIDATION_ERROR",
@@ -34,8 +37,8 @@ router.get("/", (req, res) => {
                 }
             })
         }
-        const page = Number(pageraw)
-        if(Number.isNaN(page) || !Number.isInteger(page)|| Number(page)< 1) {
+        const page = Number(pageRaw)
+        if(Number.isNaN(page) || !Number.isInteger(page)|| page < 1) {
             return res.status(400).json({
                 error: {
                     code: "VALIDATION_ERROR",
@@ -43,15 +46,20 @@ router.get("/", (req, res) => {
                 }
             })
         }
+        pageFinal = page
+        
     }
-
+    const offset = (pageFinal -1 ) * limitFinal
     return res.status(200).json(
         {
             data: [{
                 id: 1,
                 name: "Mochila",
                 precio: 45.99
-            }]
+            }],
+            meta: {
+                page: pageFinal, limit: limitFinal
+            }
         }
     )
 })
