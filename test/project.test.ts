@@ -7,7 +7,10 @@ describe("GET /projects", () => {
         expect(response.status).toBe(200)
         expect(response.body).toHaveProperty("data")
         expect(Array.isArray(response.body.data)).toBe(true)
-        expect(response.body.data[0]).toMatchObject({ id: 1, name: "Mochila", precio: 45.99 });
+        expect(response.body.data[0]).toHaveProperty("id");
+        expect(response.body.data[0]).toHaveProperty("price_cents");
+        expect(response.body.data[0].name).toBe("Project A");
+
     })
     it("400 when limit is not a number", async () => {
         const response = await request(app).get("/projects?limit=abc")
@@ -24,5 +27,8 @@ describe("GET /projects", () => {
         expect(response.status).toBe(200)
         expect(response.body).toHaveProperty("meta.page", 2)
         expect(response.body).toHaveProperty("meta.limit", 1)
+        expect(response.body.data).toHaveLength(1);
+        expect(response.body.data[0].name).toBe("Project B");
+
     })
 })

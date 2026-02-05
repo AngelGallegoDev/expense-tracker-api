@@ -1,7 +1,9 @@
 import express = require("express")
+import { pool } from "../db"
+
 const router = express.Router()
 
-router.get("/", (req, res) => {
+router.get("/", async (req, res) => {
     const limitRaw = req.query.limit
     const pageRaw = req.query.page
     const MAX_LIMIT = 20
@@ -50,13 +52,13 @@ router.get("/", (req, res) => {
         
     }
     const offset = (pageFinal -1 ) * limitFinal
+    const result = await pool.query(
+        "SELECT id, name, price_cents FROM projects ORDER BY id LIMIT $1 OFFSET $2",
+        [limitFinal, offset]
+    )
     return res.status(200).json(
         {
-            data: [{
-                id: 1,
-                name: "Mochila",
-                precio: 45.99
-            }],
+            data: result.rows,
             meta: {
                 page: pageFinal, limit: limitFinal
             }
