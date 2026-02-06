@@ -7,7 +7,7 @@ router.get("/", async (req, res) => {
     const limitRaw = req.query.limit
     const pageRaw = req.query.page
     const MAX_LIMIT = 20
-    const DEFAULT_LIMIT = 10 
+    const DEFAULT_LIMIT = 10
     let limitFinal = DEFAULT_LIMIT
     let pageFinal = 1
     if (limitRaw !== undefined) {
@@ -30,8 +30,8 @@ router.get("/", async (req, res) => {
         }
         limitFinal = limit
     }
-    if(pageRaw !== undefined) {
-        if(typeof pageRaw !== "string") {
+    if (pageRaw !== undefined) {
+        if (typeof pageRaw !== "string") {
             return res.status(400).json({
                 error: {
                     code: "VALIDATION_ERROR",
@@ -40,7 +40,7 @@ router.get("/", async (req, res) => {
             })
         }
         const page = Number(pageRaw)
-        if(Number.isNaN(page) || !Number.isInteger(page)|| page < 1) {
+        if (Number.isNaN(page) || !Number.isInteger(page) || page < 1) {
             return res.status(400).json({
                 error: {
                     code: "VALIDATION_ERROR",
@@ -49,18 +49,23 @@ router.get("/", async (req, res) => {
             })
         }
         pageFinal = page
-        
+
     }
-    const offset = (pageFinal -1 ) * limitFinal
+    const offset = (pageFinal - 1) * limitFinal
     const result = await pool.query(
         "SELECT id, name, price_cents FROM projects ORDER BY id LIMIT $1 OFFSET $2",
         [limitFinal, offset]
     )
+    const countResult = await pool.query(
+        "SELECT COUNT(*)::int AS total FROM projects"
+    );
+    const total = countResult.rows[0].total;
+
     return res.status(200).json(
         {
             data: result.rows,
             meta: {
-                page: pageFinal, limit: limitFinal
+                page: pageFinal, limit: limitFinal, total
             }
         }
     )
