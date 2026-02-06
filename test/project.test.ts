@@ -29,6 +29,13 @@ describe("GET /api/v1/projects", () => {
         expect(response.body).toHaveProperty("meta.limit", 1)
         expect(response.body.data).toHaveLength(1);
         expect(response.body.data[0].name).toBe("Project B");
-
+    })
+    it("returns meta with total", async () => {
+        const response = await request(app).get("/api/v1/projects?page=2&limit=1")
+        expect(response.status).toBe(200)
+        expect(response.body).toHaveProperty("meta.total")
+        expect(typeof response.body.meta.total).toBe("number")
+        expect(response.body.meta.total).toBeGreaterThanOrEqual(response.body.data.length)
+        expect(response.body.meta.total).toBeGreaterThan(0)
     })
 })
