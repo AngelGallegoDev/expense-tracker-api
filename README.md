@@ -47,9 +47,9 @@ En endpoints de listado/paginación puede incluirse `meta`:
 ```json
 {
   "data": [
-    { "id": 1, "name": "Mochila", "precio": 45.99 }
+    { "id": 1, "name": "Project A", "price_cents": 1000 }
   ],
-  "meta": { "page": 2, "limit": 1 }
+  "meta": { "page": 2, "limit": 1, "total": 5 }
 }
 ```
 
@@ -72,7 +72,7 @@ Los errores devuelven un objeto con `error`:
 
 ### Health check
 
-**GET** `/health`
+**GET** `/api/v1/health`
 
 Respuesta esperada (200):
 
@@ -84,16 +84,16 @@ Respuesta esperada (200):
 
 ### Listado de proyectos
 
-**GET** `/projects`
+**GET** `/api/v1/projects`
 
 Respuesta (200):
 
 ```json
 {
   "data": [
-    { "id": 1, "name": "Mochila", "precio": 45.99 }
+    { "id": 1, "name": "Project A", "price_cents": 1000 }
   ],
-  "meta": { "page": 2, "limit": 1 }
+  "meta": { "page": 1, "limit": 1, "total": 1 }
 }
 ```
 
@@ -104,16 +104,16 @@ Respuesta (200):
 Ejemplos:
 
 ✅ OK:
-- `GET /projects?limit=1`
-- `GET /projects?page=2&limit=1`
+- `GET /api/v1/projects?limit=1`
+- `GET /api/v1/projects?page=2&limit=1`
 
 ❌ Errores (400 + `VALIDATION_ERROR`):
-- `GET /projects?limit=abc`
-- `GET /projects?limit=10.5`
-- `GET /projects?limit=0`
-- `GET /projects?limit=999`
-- `GET /projects?page=abc`
-- `GET /projects?page=0`
+- `GET /api/v1/projects?limit=abc`
+- `GET /api/v1/projects?limit=10.5`
+- `GET /api/v1/projects?limit=0`
+- `GET /api/v1/projects?limit=999`
+- `GET /api/v1/projects?page=abc`
+- `GET /api/v1/projects?page=0`
 
 
 ---
@@ -134,7 +134,6 @@ npm test
 ---
 
 ## Próximos pasos (roadmap)
-* Añadir `total` en `meta` (cuando haya DB real)
 * Añadir capa de servicio y acceso a datos
 * Integración con PostgreSQL + migraciones
 * Docker + CI (GitHub Actions)
