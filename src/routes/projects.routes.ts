@@ -59,7 +59,7 @@ router.get("/", async (req, res) => {
     }
     const offset = (pageFinal - 1) * limitFinal
     const result = await pool.query(
-        "SELECT id, name, price_cents FROM projects ORDER BY id LIMIT $1 OFFSET $2",
+        "SELECT id, name, price_cents, created_at FROM projects ORDER BY id LIMIT $1 OFFSET $2",
         [limitFinal, offset]
     )
     const countResult = await pool.query(
@@ -79,7 +79,7 @@ router.get("/", async (req, res) => {
 
 router.post("/", async (req, res) => {
     const parsed = createProjectSchema.safeParse(req.body)
-    if (!parsed.success) return res.status(400).json({ error: { code: "VALIDATION_ERROR" } });
+    if (!parsed.success) return res.status(400).json({ error: { code: "VALIDATION_ERROR" }, message: "Invalid request body" });
     const { name, price_cents } = parsed.data
     const { rows } = await pool.query(
         "INSERT INTO projects (name, price_cents) VALUES ($1, $2) RETURNING id, name, price_cents, created_at",

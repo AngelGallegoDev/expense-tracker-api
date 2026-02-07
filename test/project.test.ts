@@ -1,4 +1,5 @@
 import request from "supertest"
+import { pool } from "../src/db"
 import { app } from "../src/app"
 
 describe("GET /api/v1/projects", () => {
@@ -39,3 +40,19 @@ describe("GET /api/v1/projects", () => {
         expect(response.body.meta.total).toBeGreaterThan(0)
     })
 })
+describe("POST /api/v1/projects", () => {
+    it("post created in db", async () => {
+        const response = await request(app).post("/api/v1/projects").send({ name: "p_test", price_cents: 123 })
+        expect(response.status).toBe(201)
+        expect(response.body.data).toEqual(expect.objectContaining({ name: "p_test", price_cents: 123 }))
+        expect(response.body.data.id).toBeDefined()
+        await pool.query("DELETE FROM projects WHERE id = $1", [response.body.data.id]);
+
+    })
+    it("post no contain", async () => {
+        const response = await request(app).post("/api/v1/projects").send({ name: "", price_cents: 123 })
+        expect(response.status).toBe(400)
+        expect(response.body.error).toBeDefined()
+        expect(response.body.error.code).toBe("VALIDATION_ERROR")
+    })
+})  
