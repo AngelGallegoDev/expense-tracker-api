@@ -4,7 +4,7 @@ import { pool } from "../db"
 
 const createProjectSchema = z.object({
     name: z.string().min(1),
-    price_cents: z.number().int().nonnegative().default(0),
+    price_cents: z.number().int().nonnegative(),
 });
 
 const router = express.Router()
