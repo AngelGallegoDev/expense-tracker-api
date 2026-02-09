@@ -1,5 +1,5 @@
 import * as dotenv from "dotenv";
-dotenv.config();
+dotenv.config({ override: true });
 
 import { Pool } from "pg";
 
