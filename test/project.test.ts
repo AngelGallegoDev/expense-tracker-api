@@ -55,4 +55,10 @@ describe("POST /api/v1/projects", () => {
         expect(response.body.error).toBeDefined()
         expect(response.body.error.code).toBe("VALIDATION_ERROR")
     })
+    it("400 when price_cents is negative", async () => {
+        const response = await request(app).post("/api/v1/projects").send({ name: "p_test_neg", price_cents: -1 })
+        expect(response.status).toBe(400)
+        expect(response.body).toHaveProperty("error.code", "VALIDATION_ERROR")
+    })
+
 })  
