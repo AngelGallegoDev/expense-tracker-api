@@ -79,7 +79,7 @@ router.get("/", async (req, res) => {
 
 router.post("/", async (req, res) => {
     const parsed = createProjectSchema.safeParse(req.body)
-    if (!parsed.success) return res.status(400).json({ error: { code: "VALIDATION_ERROR" }, message: "Invalid request body" });
+    if (!parsed.success) return res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Invalid request body" } });
     const { name, price_cents } = parsed.data
     const { rows } = await pool.query(
         "INSERT INTO projects (name, price_cents) VALUES ($1, $2) RETURNING id, name, price_cents, created_at",
