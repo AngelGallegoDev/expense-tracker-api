@@ -60,5 +60,10 @@ describe("POST /api/v1/projects", () => {
         expect(response.status).toBe(400)
         expect(response.body).toHaveProperty("error.code", "VALIDATION_ERROR")
     })
+    it("400 when price_cents is missing", async () => {
+        const response = (await request(app).post("/api/v1/projects").send({ name: "p_test_null"}))
+        expect(response.status).toBe(400)
+        expect(response.body).toHaveProperty("error.code", "VALIDATION_ERROR")
+    })
 
 })  
