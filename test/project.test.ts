@@ -23,6 +23,31 @@ describe("GET /api/v1/projects", () => {
         expect(response.status).toBe(400)
         expect(response.body).toHaveProperty("error.code", "VALIDATION_ERROR")
     })
+    
+    it("400 when page is not a number" , async () => {
+        const response = await request(app).get("/api/v1/projects?page=abc")
+        expect(response.status).toBe(400)
+        expect(response.body).toHaveProperty("error.code", "VALIDATION_ERROR")
+    })
+
+    it("400 when page is less than 1", async () => {
+        const response = await request(app).get("/api/v1/projects?page=0")
+        expect(response.status).toBe(400)
+        expect(response.body).toHaveProperty("error.code", "VALIDATION_ERROR")
+    })
+
+    it("400 when limit exceeds max", async () => {
+        const response = await request(app).get("/api/v1/projects?limit=21")
+        expect(response.status).toBe(400)
+        expect(response.body).toHaveProperty("error.code", "VALIDATION_ERROR")
+    })
+
+    it("400 when limit is less than 1", async () => {
+        const response = await request(app).get("/api/v1/projects?limit=0")
+        expect(response.status).toBe(400)
+        expect(response.body).toHaveProperty("error.code", "VALIDATION_ERROR")
+    })
+
     it("returns meta with page and limit", async () => {
         const response = await request(app).get("/api/v1/projects?page=2&limit=1")
         expect(response.status).toBe(200)
