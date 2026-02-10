@@ -86,9 +86,19 @@ describe("POST /api/v1/projects", () => {
         expect(response.body).toHaveProperty("error.code", "VALIDATION_ERROR")
     })
     it("400 when price_cents is missing", async () => {
-        const response = (await request(app).post("/api/v1/projects").send({ name: "p_test_null"}))
+        const response = await request(app).post("/api/v1/projects").send({ name: "p_test_null"})
         expect(response.status).toBe(400)
         expect(response.body).toHaveProperty("error.code", "VALIDATION_ERROR")
+    })
+    it("GET /projects/:id -> 400 when id is not a positive integer", async () => {
+        const response = await request(app).get("/api/v1/projects/abc")
+        expect(response.status).toBe(400)
+        expect(response.body).toHaveProperty("error.code", "VALIDATION_ERROR")
+    })
+    it("GET /projects/:id -> 404 when project does not exist", async () => {
+        const response = await request(app).get("/api/v1/projects/999999")
+        expect(response.status).toBe(404)
+        expect(response.body).toHaveProperty("error.message", "Project not found")
     })
 
 })  
