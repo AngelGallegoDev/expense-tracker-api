@@ -1,6 +1,7 @@
 import request from "supertest"
 import { pool } from "../src/db"
 import { app } from "../src/app"
+import { number } from "zod"
 
 describe("GET /api/v1/projects", () => {
     it("should return a list of projects", async () => {
@@ -23,8 +24,8 @@ describe("GET /api/v1/projects", () => {
         expect(response.status).toBe(400)
         expect(response.body).toHaveProperty("error.code", "VALIDATION_ERROR")
     })
-    
-    it("400 when page is not a number" , async () => {
+
+    it("400 when page is not a number", async () => {
         const response = await request(app).get("/api/v1/projects?page=abc")
         expect(response.status).toBe(400)
         expect(response.body).toHaveProperty("error.code", "VALIDATION_ERROR")
@@ -86,7 +87,7 @@ describe("POST /api/v1/projects", () => {
         expect(response.body).toHaveProperty("error.code", "VALIDATION_ERROR")
     })
     it("400 when price_cents is missing", async () => {
-        const response = await request(app).post("/api/v1/projects").send({ name: "p_test_null"})
+        const response = await request(app).post("/api/v1/projects").send({ name: "p_test_null" })
         expect(response.status).toBe(400)
         expect(response.body).toHaveProperty("error.code", "VALIDATION_ERROR")
     })
@@ -100,5 +101,15 @@ describe("POST /api/v1/projects", () => {
         expect(response.status).toBe(404)
         expect(response.body).toHaveProperty("error.message", "Project not found")
     })
-
+    it("creates a project and fetches it by id", async () => {
+        const payload = { name: "test", price_cents: 1234 }
+        const createRes = (await request(app).post("/api/v1/projects").send(payload))
+        expect(createRes.status).toBe(201)
+        const id = createRes.body.data.id
+        expect(typeof id).toBe("number")
+        const response = await request(app).get(`/api/v1/projects/${id}`)
+        expect(response.status).toBe(200)
+        expect(response.body.data).toEqual(expect.objectContaining({ id, ...payload }))
+        await pool.query("DELETE FROM projects WHERE id = $1", [id]);
+    })
 })  
