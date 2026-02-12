@@ -2,8 +2,6 @@ import express from "express"
 import { z } from "zod"
 import { pool } from "../db"
 import { Errors } from "../errors"
-import { queryObjects } from "node:v8"
-import { parse } from "node:path"
 const MAX_LIMIT = 20
 const DEFAULT_LIMIT = 10
 const createProjectSchema = z.object({
@@ -55,7 +53,7 @@ router.get("/", async (req, res) => {
             }
         }
     )
-})
+});
 
 router.get("/:id", async (req, res, next) => {
     const parsed = idSchema.safeParse(req.params)
@@ -71,27 +69,33 @@ router.get("/:id", async (req, res, next) => {
     catch (err) {
         return next(err)
     }
-})
+});
 
 router.post("/", async (req, res, next) => {
     const parsed = createProjectSchema.safeParse(req.body)
     if (!parsed.success) return res.status(400).json(Errors.validation("Invalid request body"));
-    const { name, price_cents } = parsed.data
-    const { rows } = await pool.query(
-        "INSERT INTO projects (name, price_cents) VALUES ($1, $2) RETURNING id, name, price_cents, created_at",
-        [name, price_cents]
-    )
-    return res.status(201).json({ data: rows[0] })
-})
+    try {
+        const { name, price_cents } = parsed.data
+        const { rows } = await pool.query(
+            "INSERT INTO projects (name, price_cents) VALUES ($1, $2) RETURNING id, name, price_cents, created_at",
+            [name, price_cents]
+        )
+        return res.status(201).json({ data: rows[0] })
+    }
+    catch (err) { 
+        return next(err)
+    }
+
+});
 
 router.delete("/:id", async (req, res, next) => {
     const parsed = idSchema.safeParse(req.params)
     if (!parsed.success) return res.status(400).json(Errors.validation("id must be a positive integer"))
-        const  { id } = parsed.data
+    const { id } = parsed.data
     try {
-        const {rows} = await pool.query(
+        const { rows } = await pool.query(
             "DELETE FROM projects WHERE id = $1 RETURNING id",
-      [id]
+            [id]
         )
         if (rows.length === 0) return res.status(404).json(Errors.notFound("Project not found"))
         return res.status(204).send()
@@ -99,6 +103,27 @@ router.delete("/:id", async (req, res, next) => {
     catch (err) {
         return next(err)
     }
-})
+});
+
+router.put("/:id", async (req, res, next) => {
+    const parsedParams = idSchema.safeParse(req.params)
+    if (!parsedParams.success) return res.status(400).json(Errors.validation("id must be a positive integer"))
+
+    const parsedBody = createProjectSchema.safeParse(req.body)
+    if (!parsedBody.success) return res.status(400).json(Errors.validation("Invalid request body"))
+    const { id } = parsedParams.data
+    const { name, price_cents } = parsedBody.data
+
+
+    try {
+        const { rows } = await pool.query("UPDATE projects SET name = $1, price_cents = $2 WHERE id = $3 RETURNING id, name, price_cents, created_at",
+            [name, price_cents, id])
+        if (rows.length === 0) return res.status(404).json(Errors.notFound("Project not found"))
+
+        return res.status(200).json({ data: rows[0] })
+    }
+    catch (err) { return next(err) }
+
+});
 
 export default router
