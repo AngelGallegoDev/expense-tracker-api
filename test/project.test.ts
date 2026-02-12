@@ -1,7 +1,6 @@
 import request from "supertest"
 import { pool } from "../src/db"
 import { app } from "../src/app"
-import { number } from "zod"
 
 describe("GET /api/v1/projects", () => {
     it("should return a list of projects", async () => {
@@ -113,3 +112,20 @@ describe("POST /api/v1/projects", () => {
         await pool.query("DELETE FROM projects WHERE id = $1", [id]);
     })
 })  
+describe("DELETE /api/v1/projects", () => {
+    it("204 deletes an existing project", async () => {
+        const create = await request(app).post("/api/v1/projects").send({ name: "tmp", price_cents: 123 })
+        const id = create.body.data.id
+
+        await request(app).delete(`/api/v1/projects/${id}`).expect(204)
+        await request(app).get(`/api/v1/projects/${id}`).expect(404)
+
+    })
+    it("404 when project does not exist", async () => {
+        await request(app).delete("/api/v1/projects/999999").expect(404)
+        
+    })
+    it("400 when id is invalid", async () => {
+        await request(app).delete("/api/v1/projects/abc").expect(400)
+    })
+})
