@@ -3,6 +3,7 @@ import { z } from "zod"
 import { pool } from "../db"
 import { Errors } from "../errors"
 import { queryObjects } from "node:v8"
+import { parse } from "node:path"
 const MAX_LIMIT = 20
 const DEFAULT_LIMIT = 10
 const createProjectSchema = z.object({
@@ -20,8 +21,6 @@ const idSchema = z.object({
 const router = express.Router()
 
 router.get("/", async (req, res) => {
-
-
 
     const parsed = paginationSchema.safeParse(req.query)
 
@@ -58,23 +57,23 @@ router.get("/", async (req, res) => {
     )
 })
 
-router.get("/:id" , async (req, res, next) => {
+router.get("/:id", async (req, res, next) => {
     const parsed = idSchema.safeParse(req.params)
-    if (!parsed.success) return res.status(400).json( Errors.validation("id must be a positive integer"))
+    if (!parsed.success) return res.status(400).json(Errors.validation("id must be a positive integer"))
 
     const { id } = parsed.data
-    try{
+    try {
         const { rows } = await pool.query("SELECT id, name, price_cents, created_at FROM projects WHERE id = $1",
-      [id])
-      if (rows.length === 0) return res.status(404).json(Errors.notFound("Project not found"))
-        return res.status(200).json({ data: rows[0]})
+            [id])
+        if (rows.length === 0) return res.status(404).json(Errors.notFound("Project not found"))
+        return res.status(200).json({ data: rows[0] })
     }
     catch (err) {
         return next(err)
     }
 })
 
-router.post("/", async (req, res) => {
+router.post("/", async (req, res, next) => {
     const parsed = createProjectSchema.safeParse(req.body)
     if (!parsed.success) return res.status(400).json(Errors.validation("Invalid request body"));
     const { name, price_cents } = parsed.data
@@ -83,6 +82,23 @@ router.post("/", async (req, res) => {
         [name, price_cents]
     )
     return res.status(201).json({ data: rows[0] })
+})
+
+router.delete("/:id", async (req, res, next) => {
+    const parsed = idSchema.safeParse(req.params)
+    if (!parsed.success) return res.status(400).json(Errors.validation("id must be a positive integer"))
+        const  { id } = parsed.data
+    try {
+        const {rows} = await pool.query(
+            "DELETE FROM projects WHERE id = $1 RETURNING id",
+      [id]
+        )
+        if (rows.length === 0) return res.status(404).json(Errors.notFound("Project not found"))
+        return res.status(204).send()
+    }
+    catch (err) {
+        return next(err)
+    }
 })
 
 export default router
