@@ -1,3 +1,5 @@
+TRUNCATE TABLE projects RESTART IDENTITY;
+
 INSERT INTO projects (name, price_cents) VALUES
 ('Project A', 1000),
 ('Project B', 2000),

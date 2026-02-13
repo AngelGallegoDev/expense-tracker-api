@@ -158,6 +158,20 @@ Respuestas:
 
 ---
 
+### Update de proyecto por id
+**PUT** `/api/v1/projects/:id`
+
+Body (JSON):
+```json
+{ "name": "Project X", "price_cents": 1234 }
+```
+Respuestas:
+- `200` → `{ "data": { "id": 123, "name": "Project X", "price_cents": 1234, "created_at": "..." } }`
+- `400 VALIDATION_ERROR` → id inválido o body inválido
+- `404 NOT_FOUND` → `Project not found`
+
+---
+
 ### Borrar proyecto
 **DELETE** `/api/v1/projects/:id`
 
@@ -187,7 +201,6 @@ npm test
 ---
 
 ## Próximos pasos (roadmap)
-- PUT/PATCH `/api/v1/projects/:id` (update) + tests
 - Auth: register/login + `/users/me`
 - Tasks CRUD (relacionadas con projects)
 - CI (GitHub Actions) + Deploy
