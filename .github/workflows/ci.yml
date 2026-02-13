@@ -1,0 +1,43 @@
+name: CI
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: expense_tracker
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - run: npm ci
+
+      - run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - run: |
+          for i in {1..20}; do
+            pg_isready -h localhost -p 5432 -U postgres && break
+            sleep 1
+          done
+
+      - run: psql "$DATABASE_URL" -f sql/001_create_projects.sql
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/expense_tracker
+
+      - run: psql "$DATABASE_URL" -f sql/002_seed_projects.sql
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/expense_tracker
+
+      - run: npm test
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/expense_tracker
