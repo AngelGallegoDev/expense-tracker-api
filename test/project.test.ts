@@ -111,7 +111,7 @@ describe("POST /api/v1/projects", () => {
         expect(response.body.data).toEqual(expect.objectContaining({ id, ...payload }))
         await pool.query("DELETE FROM projects WHERE id = $1", [id]);
     })
-})  
+})
 describe("DELETE /api/v1/projects", () => {
     it("204 deletes an existing project", async () => {
         const create = await request(app).post("/api/v1/projects").send({ name: "tmp", price_cents: 123 })
@@ -123,9 +123,39 @@ describe("DELETE /api/v1/projects", () => {
     })
     it("404 when project does not exist", async () => {
         await request(app).delete("/api/v1/projects/999999").expect(404)
-        
+
     })
     it("400 when id is invalid", async () => {
         await request(app).delete("/api/v1/projects/abc").expect(400)
+    })
+})
+describe("PUT /api/v1/projects/:id", () => {
+    it("200 update project", async () => {
+        const create = await request(app)
+            .post("/api/v1/projects")
+            .send({ name: "tmpput", price_cents: 123 })
+
+        const id = create.body.data.id
+        const response = await request(app)
+            .put(`/api/v1/projects/${id}`)
+            .send({ name: "tmpputexit", price_cents: 999 })
+            expect(response.status).toBe(200)
+            expect(response.body.data.id).toBe(id);
+        expect(response.body.data).toEqual(expect.objectContaining({ name: "tmpputexit", price_cents: 999 }))
+        await request(app).delete(`/api/v1/projects/${id}`);
+    })
+    it("PUT 400 id = abc", async () => {
+        await request(app).put("/api/v1/projects/abc").send({ name: "x", price_cents: 123 }).expect(400)
+    })
+    it("400 body invalid", async () => {
+        const create = await request(app)
+            .post("/api/v1/projects")
+            .send({ name: "400id", price_cents: 123 })
+        const id = create.body.data.id
+        await request(app).put(`/api/v1/projects/${id}`).send({ name: "", price_cents: 123 }).expect(400)
+        await request(app).delete(`/api/v1/projects/${id}`);
+    })
+    it("404 id not found", async () => {
+        await request(app).put("/api/v1/projects/999999").send({ name: "x", price_cents: 123 }).expect(404)
     })
 })
