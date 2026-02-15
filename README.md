@@ -10,20 +10,37 @@ Objetivo: construir una base profesional (rutas, validación de inputs, contrato
 - TypeScript
 - PostgreSQL (Docker)
 - Testing: Jest + Supertest
+- OpenAPI + Swagger UI (`/docs/`)
 
 ---
 
-## Cómo ejecutar el proyecto
+## Quickstart (desde cero)
 
-### Requisitos
+```bash
+npm install
+docker compose up -d
+npm test
+npm run dev
+```
+
+Cuando arranque el servidor, verás en consola el puerto y la URL base.
+
+---
+
+## Requisitos
 - Node.js (LTS recomendado)
 - npm
 - Docker (para PostgreSQL)
 
-### Instalación
+---
+
+## Instalación
+
 ```bash
 npm install
 ```
+
+---
 
 ## DB (PostgreSQL) con Docker
 
@@ -39,6 +56,8 @@ Parar y borrar volúmenes (reset):
 docker compose down -v
 ```
 
+---
+
 ## Variables de entorno
 
 Crea un `.env` en la raíz:
@@ -49,15 +68,31 @@ DATABASE_URL=postgres://postgres:postgres@localhost:5432/expense_tracker
 
 > Ajusta usuario/puerto/nombre según tu `docker-compose.yml`.
 
-### Ejecutar tests
+---
+
+## Ejecutar
+
+### Tests
 ```bash
 npm test
 ```
 
-### Ejecutar en desarrollo
+### Desarrollo
 ```bash
 npm run dev
 ```
+
+---
+
+## API Docs (Swagger / OpenAPI)
+
+- **Swagger UI**: `GET /docs/`
+  - Ejemplo: `http://localhost:3000/docs/` *(usa el puerto que veas en consola al arrancar)*
+
+- **OpenAPI spec**: `./openapi.yaml`
+  - La API está versionada bajo: `/api/v1` (los endpoints “Try it out” deberían apuntar a ese prefijo).
+
+---
 
 ## Contrato de respuestas (API Contract)
 
@@ -86,6 +121,11 @@ Los errores devuelven un objeto con `error`:
   }
 }
 ```
+
+Códigos típicos:
+- `VALIDATION_ERROR` (400)
+- `NOT_FOUND` (404)
+- `INTERNAL_ERROR` (500)
 
 ---
 
@@ -165,6 +205,7 @@ Body (JSON):
 ```json
 { "name": "Project X", "price_cents": 1234 }
 ```
+
 Respuestas:
 - `200` → `{ "data": { "id": 123, "name": "Project X", "price_cents": 1234, "created_at": "..." } }`
 - `400 VALIDATION_ERROR` → id inválido o body inválido
@@ -190,8 +231,10 @@ curl -i -X DELETE http://localhost:3000/api/v1/projects/123
 ## Testing
 
 Tests de integración con **Supertest** verificando:
-- CRUD Projects (GET/POST/GET by id/DELETE)
+- Health (`/api/v1/health`)
+- CRUD Projects (GET/POST/GET by id/PUT/DELETE)
 - Validación (400) y not found (404)
+- Swagger UI (`/docs/`)
 
 Ejecutar:
 ```bash
@@ -202,6 +245,7 @@ npm test
 
 ## Próximos pasos (roadmap)
 - Auth: register/login + `/users/me`
-- Tasks CRUD (relacionadas con projects)
-- CI (GitHub Actions) + Deploy
-- OpenAPI/Swagger
+- Entidad principal (expenses/transactions) + relación con projects
+- Docker para app + despliegue (Render/Fly.io) + variables prod
+- Ampliar OpenAPI (spec completa + ejemplos)
+- Observabilidad básica: requestId + logs consistentes
