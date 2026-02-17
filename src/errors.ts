@@ -1,4 +1,4 @@
-export type ApiErrorCode = "VALIDATION_ERROR" | "NOT_FOUND" | "INTERNAL_ERROR" | "CONFLICT"
+export type ApiErrorCode = "VALIDATION_ERROR" | "NOT_FOUND" | "INTERNAL_ERROR" | "CONFLICT" | "UNAUTHORIZED"
 
 export function apiError(code: ApiErrorCode, message: string) {
     return { error: { code, message } }
@@ -9,4 +9,5 @@ export const Errors = {
     notFound: (message = "Route not found") => apiError("NOT_FOUND", message),
     internal: (message = "Internal server error") => apiError("INTERNAL_ERROR", message),
     conflict: (message = "Conflict") => apiError("CONFLICT", message),
+    unauthorized: (message = "Invalid credentials") => apiError("UNAUTHORIZED", message),
 } as const;
