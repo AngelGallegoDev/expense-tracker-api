@@ -1,20 +1,31 @@
 # Expense Tracker API (Node + TypeScript)
 
-API REST en **Node.js + Express + TypeScript** con tests (Jest + Supertest).  
-Objetivo: construir una base profesional (rutas, validación de inputs, contrato de respuestas y tests) para evolucionar hacia un backend completo con DB y despliegue.
+API REST en **Node.js + Express + TypeScript** con **PostgreSQL (Docker)**, **tests (Jest + Supertest)**, **validación (Zod)** y **documentación OpenAPI + Swagger UI**.
+
+- Prefijo de versión: `/api/v1`
+- Swagger UI: `/docs/`
 
 ---
 
 ## Stack
 - Node.js + Express
 - TypeScript
-- PostgreSQL (Docker)
+- PostgreSQL (Docker Compose)
+- Zod (validación)
+- Auth: bcrypt + JWT
 - Testing: Jest + Supertest
-- OpenAPI + Swagger UI (`/docs/`)
+- OpenAPI 3.0 + Swagger UI (`/docs/`)
 
 ---
 
-## Quickstart (desde cero)
+## Requisitos
+- Node.js (LTS recomendado)
+- npm
+- Docker Desktop / Docker Engine (para PostgreSQL)
+
+---
+
+## Quickstart
 
 ```bash
 npm install
@@ -23,50 +34,42 @@ npm test
 npm run dev
 ```
 
-Cuando arranque el servidor, verás en consola el puerto y la URL base.
+- Base URL local: `http://localhost:3000`
+- Swagger UI: `http://localhost:3000/docs/`
 
----
-
-## Requisitos
-- Node.js (LTS recomendado)
-- npm
-- Docker (para PostgreSQL)
-
----
-
-## Instalación
-
-```bash
-npm install
-```
-
----
-
-## DB (PostgreSQL) con Docker
-
-Levanta la base de datos:
-
-```bash
-docker compose up -d
-```
-
-Parar y borrar volúmenes (reset):
-
-```bash
-docker compose down -v
-```
+> Nota: si tu puerto es distinto, usa el que muestre tu consola al arrancar.
 
 ---
 
 ## Variables de entorno
 
-Crea un `.env` en la raíz:
+Este proyecto usa `scripts/ensure-env.mjs` (se ejecuta en `pretest`) para crear `.env` desde `.env.example` si falta.
+
+Aun así, asegúrate de tener (en `.env` o `.env.example`):
 
 ```env
 DATABASE_URL=postgres://postgres:postgres@localhost:5432/expense_tracker
+JWT_SECRET=change_me_in_dev
 ```
 
-> Ajusta usuario/puerto/nombre según tu `docker-compose.yml`.
+- `DATABASE_URL`: conexión a Postgres.
+- `JWT_SECRET`: secreto para firmar/verificar JWT (necesario para `/users/me`).
+
+---
+
+## DB (PostgreSQL) con Docker
+
+Levantar DB:
+
+```bash
+docker compose up -d
+```
+
+Parar y borrar volúmenes (reset total):
+
+```bash
+docker compose down -v
+```
 
 ---
 
@@ -87,10 +90,7 @@ npm run dev
 ## API Docs (Swagger / OpenAPI)
 
 - **Swagger UI**: `GET /docs/`
-  - Ejemplo: `http://localhost:3000/docs/` *(usa el puerto que veas en consola al arrancar)*
-
 - **OpenAPI spec**: `./openapi.yaml`
-  - La API está versionada bajo: `/api/v1` (los endpoints “Try it out” deberían apuntar a ese prefijo).
 
 ---
 
@@ -106,7 +106,7 @@ En endpoints de listado/paginación puede incluirse `meta`:
   "data": [
     { "id": 1, "name": "Project A", "price_cents": 1000 }
   ],
-  "meta": { "page": 2, "limit": 1, "total": 5 }
+  "meta": { "page": 1, "limit": 10, "total": 5 }
 }
 ```
 
@@ -122,10 +122,57 @@ Los errores devuelven un objeto con `error`:
 }
 ```
 
-Códigos típicos:
+Códigos usados:
 - `VALIDATION_ERROR` (400)
+- `UNAUTHORIZED` (401)
 - `NOT_FOUND` (404)
+- `CONFLICT` (409)
 - `INTERNAL_ERROR` (500)
+
+---
+
+## Auth (registro, login y endpoint protegido)
+
+### 1) Registro
+**POST** `/api/v1/auth/register`
+
+Body:
+```json
+{ "email": "user@mail.com", "password": "12345678" }
+```
+
+Respuestas:
+- `201` → `{ "data": { "id": 1, "email": "user@mail.com", "role": "user", "created_at": "..." } }`
+- `400 VALIDATION_ERROR`
+- `409 CONFLICT` (email ya usado)
+
+### 2) Login
+**POST** `/api/v1/auth/login`
+
+Body:
+```json
+{ "email": "user@mail.com", "password": "12345678" }
+```
+
+Respuesta:
+- `200` → `{ "data": { "token": "<JWT>", "user": { "id": 1, "email": "user@mail.com" } } }`
+- `400 VALIDATION_ERROR`
+- `401 UNAUTHORIZED` (credenciales inválidas)
+
+### 3) Usuario actual (protegido)
+**GET** `/api/v1/users/me`
+
+Headers:
+- `Authorization: Bearer <JWT>`
+
+Respuesta:
+- `200` → `{ "data": { "id": 1, "email": "user@mail.com", "created_at": "..." } }`
+- `401 UNAUTHORIZED` (token ausente / inválido / expirado)
+
+Ejemplo con curl:
+```bash
+curl -s -X GET http://localhost:3000/api/v1/users/me   -H "Authorization: Bearer <JWT>"
+```
 
 ---
 
@@ -134,106 +181,82 @@ Códigos típicos:
 ### Health check
 **GET** `/api/v1/health`
 
-Respuesta esperada (200):
+Respuesta (200):
 ```json
 { "data": { "status": "ok" } }
 ```
 
 ---
 
-### Listado de proyectos
+### Projects
+
+#### Listado (paginado)
 **GET** `/api/v1/projects`
 
-Respuesta (200):
-```json
-{
-  "data": [
-    { "id": 1, "name": "Project A", "price_cents": 1000 }
-  ],
-  "meta": { "page": 1, "limit": 10, "total": 5 }
-}
-```
+Query params:
+- `limit` (opcional): entero 1..20 (default 10)
+- `page` (opcional): entero >= 1 (default 1)
 
-#### Query params soportados
-- `limit` (opcional): entero entre `1` y `20` (default: `10`)
-- `page` (opcional): entero `>= 1` (default: `1`)
+Respuestas:
+- `200` → `{ data: [...], meta: { page, limit, total } }`
+- `400 VALIDATION_ERROR`
 
 Ejemplos:
+```bash
+curl -s "http://localhost:3000/api/v1/projects?page=1&limit=10"
+curl -s "http://localhost:3000/api/v1/projects?page=2&limit=5"
+```
 
-✅ OK:
-- `GET /api/v1/projects?limit=1`
-- `GET /api/v1/projects?page=2&limit=1`
-
-❌ Errores (400 + `VALIDATION_ERROR`):
-- `GET /api/v1/projects?limit=abc`
-- `GET /api/v1/projects?limit=10.5`
-- `GET /api/v1/projects?limit=0`
-- `GET /api/v1/projects?limit=999`
-- `GET /api/v1/projects?page=abc`
-- `GET /api/v1/projects?page=0`
-
----
-
-### Crear proyecto
+#### Crear
 **POST** `/api/v1/projects`
 
-Body (JSON):
+Body:
 ```json
 { "name": "Project X", "price_cents": 1234 }
 ```
 
 Respuestas:
 - `201` → `{ "data": { "id": 123, "name": "Project X", "price_cents": 1234, "created_at": "..." } }`
-- `400 VALIDATION_ERROR` → name vacío / price_cents missing o negativo
+- `400 VALIDATION_ERROR`
 
----
-
-### Obtener proyecto por id
+#### Obtener por id
 **GET** `/api/v1/projects/:id`
 
 Respuestas:
-- `200` → `{ "data": { "id": 1, "name": "...", "price_cents": 1000, "created_at": "..." } }`
-- `400 VALIDATION_ERROR` → id inválido (no entero positivo)
-- `404 NOT_FOUND` → `Project not found`
+- `200` → `{ "data": { ... } }`
+- `400 VALIDATION_ERROR` (id no entero positivo)
+- `404 NOT_FOUND` (`Project not found`)
 
----
-
-### Update de proyecto por id
+#### Update completo
 **PUT** `/api/v1/projects/:id`
 
-Body (JSON):
+Body:
 ```json
 { "name": "Project X", "price_cents": 1234 }
 ```
 
 Respuestas:
-- `200` → `{ "data": { "id": 123, "name": "Project X", "price_cents": 1234, "created_at": "..." } }`
-- `400 VALIDATION_ERROR` → id inválido o body inválido
-- `404 NOT_FOUND` → `Project not found`
+- `200` → `{ "data": { ... } }`
+- `400 VALIDATION_ERROR`
+- `404 NOT_FOUND`
 
----
-
-### Borrar proyecto
+#### Borrar
 **DELETE** `/api/v1/projects/:id`
 
 Respuestas:
-- `204 No Content` → borrado correcto (sin body)
-- `400 VALIDATION_ERROR` → id inválido (no entero positivo)
-- `404 NOT_FOUND` → `Project not found`
-
-Ejemplo:
-```bash
-curl -i -X DELETE http://localhost:3000/api/v1/projects/123
-```
+- `204 No Content`
+- `400 VALIDATION_ERROR`
+- `404 NOT_FOUND`
 
 ---
 
 ## Testing
 
-Tests de integración con **Supertest** verificando:
-- Health (`/api/v1/health`)
+Tests de integración con **Supertest** cubriendo:
+- `/api/v1/health`
 - CRUD Projects (GET/POST/GET by id/PUT/DELETE)
-- Validación (400) y not found (404)
+- Auth: register/login
+- Users: `/api/v1/users/me` (401/200)
 - Swagger UI (`/docs/`)
 
 Ejecutar:
@@ -243,9 +266,9 @@ npm test
 
 ---
 
-## Próximos pasos (roadmap)
-- Auth: register/login + `/users/me`
-- Entidad principal (expenses/transactions) + relación con projects
-- Docker para app + despliegue (Render/Fly.io) + variables prod
-- Ampliar OpenAPI (spec completa + ejemplos)
-- Observabilidad básica: requestId + logs consistentes
+## Roadmap (próximos pasos)
+- Roles/Permisos: `requireRole` para endpoints “admin-only”
+- Entidad principal (expenses/transactions) y relaciones
+- Docker para la app + despliegue (Render/Fly.io)
+- Mejoras OpenAPI: tags, examples, componentes reutilizables
+- Observabilidad: requestId + logs consistentes
