@@ -23,6 +23,84 @@ paths:
                       status:
                         type: string
                         example: ok
+
+  /api/v1/auth/register:
+    post:
+      summary: Register user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthRegisterRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthRegisterResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "409":
+          description: Email already in use
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /api/v1/auth/login:
+    post:
+      summary: Login (returns JWT)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthLoginRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthLoginResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /api/v1/users/me:
+    get:
+      summary: Get current user
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserMeResponse"
+        "401":
+          description: Unauthorized (missing/invalid token)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
   /api/v1/projects:
     get:
       summary: List projects
@@ -154,6 +232,12 @@ paths:
                 $ref: "#/components/schemas/ApiError"
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
   schemas:
     ApiError:
       type: object
@@ -205,4 +289,68 @@ components:
       properties:
         data:
           $ref: "#/components/schemas/Project"
+      required: [data]
+
+    AuthRegisterRequest:
+      type: object
+      properties:
+        email: { type: string, format: email, example: "user@mail.com" }
+        password: { type: string, minLength: 8, example: "12345678" }
+      required: [email, password]
+
+    AuthLoginRequest:
+      type: object
+      properties:
+        email: { type: string, format: email, example: "user@mail.com" }
+        password: { type: string, minLength: 8, example: "12345678" }
+      required: [email, password]
+
+    UserRegistered:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        email: { type: string, format: email, example: "user@mail.com" }
+        role: { type: string, example: "user" }
+        created_at: { type: string, format: date-time, example: "2026-02-18T10:00:00.000Z" }
+      required: [id, email, role, created_at]
+
+    AuthRegisterResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/UserRegistered"
+      required: [data]
+
+    AuthUserInToken:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        email: { type: string, format: email, example: "user@mail.com" }
+      required: [id, email]
+
+    AuthLoginResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            token: { type: string, example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." }
+            user:
+              $ref: "#/components/schemas/AuthUserInToken"
+          required: [token, user]
+      required: [data]
+
+    UserMe:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        email: { type: string, format: email, example: "user@mail.com" }
+        created_at: { type: string, format: date-time, example: "2026-02-18T10:00:00.000Z" }
+      required: [id, email, created_at]
+
+    UserMeResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/UserMe"
       required: [data]
