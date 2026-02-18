@@ -15,7 +15,7 @@ router.get("/me", requireAuth, async (req, res, next) => {
     );
 
     if (rows.length === 0) {
-      return next(Errors.unauthorized("User not found"));
+      return res.status(401).json(Errors.unauthorized("User not found"))
     }
 
     return res.status(200).json({ data: rows[0] });

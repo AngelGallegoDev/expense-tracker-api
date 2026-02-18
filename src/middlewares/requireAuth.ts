@@ -22,24 +22,24 @@ function extractBearerToken(req: Request): string | null {
   return match[1]?.trim() || null;
 }
 
-export function requireAuth(req: Request, _res: Response, next: NextFunction) {
+export function requireAuth(req: Request, res: Response, next: NextFunction) {
   const token = extractBearerToken(req);
 
   if (!token) {
-    return next(Errors.unauthorized("Missing bearer token"));
+    return res.status(401).json(Errors.unauthorized("Missing bearer token"));
   }
 
   const secret = process.env.JWT_SECRET;
   if (!secret) {
 
-    return next(Errors.internal("Missing JWT_SECRET"));
+    return res.status(500).json(Errors.internal("Missing JWT_SECRET"));
   }
 
   try {
     const decoded = jwt.verify(token, secret);
 
     if (typeof decoded === "string" || decoded == null) {
-      return next(Errors.unauthorized("Invalid token payload"));
+      return res.status(401).json(Errors.unauthorized("Invalid token payload"));
     }
 
     const sub = (decoded as jwt.JwtPayload).sub;
@@ -49,12 +49,12 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction) {
       typeof sub === "string" ? Number(sub) : typeof sub === "number" ? sub : NaN;
 
     if (!Number.isInteger(userId) || userId <= 0) {
-      return next(Errors.unauthorized("Invalid token subject"));
+      return res.status(401).json(Errors.unauthorized("Invalid token subject"));
     }
 
     req.userId = userId;
     return next();
   } catch {
-    return next(Errors.unauthorized("Invalid or expired token"));
+    return res.status(401).json(Errors.unauthorized("Invalid or expired token"));
   }
 }
