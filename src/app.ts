@@ -2,6 +2,7 @@ import express from "express"
 import healthRoutes from "./routes/health.routes"
 import projectRoutes from "./routes/projects.routes"
 import authRegisterRoutes from "./routes/auth.routes"
+import usersRouter from "./routes/users.routes"
 import { Errors } from "./errors"
 import * as swaggerUi from "swagger-ui-express";
 import * as YAML from "yaml";
@@ -18,6 +19,7 @@ app.use("/docs", swaggerUi.serve, swaggerUi.setup(openapiDoc));
 app.use(`${API_PREFIX}/health`, healthRoutes)
 app.use(`${API_PREFIX}/projects`, projectRoutes)
 app.use(`${API_PREFIX}/auth`, authRegisterRoutes)
+app.use(`${API_PREFIX}/users`, usersRouter);
 app.use((_req, res) => {
   res.status(404).json(Errors.notFound());
 });
