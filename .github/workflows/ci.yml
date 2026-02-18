@@ -12,7 +12,7 @@ jobs:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: expense_tracker
         ports:
-          - 5432:5432
+          - 5432:5433
 
     env:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/expense_tracker
