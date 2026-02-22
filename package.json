@@ -8,7 +8,11 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "pretest": "node scripts/ensure-env.mjs",
-    "test": "jest"
+    "test": "jest",
+    "predb:migrate": "node scripts/ensure-env.mjs",
+    "db:migrate": "node scripts/db-migrate.mjs",
+    "predb:reset": "node scripts/ensure-env.mjs",
+    "db:reset": "node scripts/db-reset.mjs --force"
   },
   "repository": {
     "type": "git",
