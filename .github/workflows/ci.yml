@@ -37,8 +37,6 @@ jobs:
           done
           echo "Postgres not ready" && exit 1
 
-      - run: psql "$DATABASE_URL" -f sql/001_create_projects.sql
-      - run: psql "$DATABASE_URL" -f sql/002_seed_projects.sql
-      - run: psql "$DATABASE_URL" -f sql/003_create_users.sql
+      - run: node scripts/db-migrate.mjs
 
       - run: npm test
