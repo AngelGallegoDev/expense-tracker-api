@@ -2,9 +2,10 @@ import type { Request, Response, NextFunction } from "express";
 import { pool } from "../db"
 import { Errors } from "../errors"
 
-export const requereRole = (required: "user" | "admin") => {
+export const requireRole = (required: "user" | "admin") => 
     async (req: Request, res: Response, next: NextFunction) => {
-        if (!req.userId) return res.status(500).json(Errors.internal("Missing userId"))
+        const userId = req.userId
+        if (userId == null) { res.status(500).json(Errors.internal("Missing userId")); return }
         try {
             const r = await pool.query("SELECT role FROM users WHERE id = $1", [req.userId])
             if (r.rows.length === 0) return res.status(401).json(Errors.unauthorized("User not found"))
@@ -15,4 +16,3 @@ export const requereRole = (required: "user" | "admin") => {
             return next(err)
         }
     }
-}

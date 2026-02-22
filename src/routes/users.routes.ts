@@ -3,6 +3,7 @@ import express from "express";
 import { pool } from "../db";
 import { Errors } from "../errors";
 import { requireAuth } from "../middlewares/requireAuth";
+import { requireRole } from "../middlewares/requireRole";
 
 const router = express.Router();
 
@@ -23,4 +24,12 @@ router.get("/me", requireAuth, async (req, res, next) => {
     return next(err);
   }
 });
+
+router.get("/", requireAuth, requireRole("admin"), async( req, res, next ) => {
+  try {
+    const r = await pool.query("SELECT id, email, role, created_at FROM users ORDER BY id ASC")
+    return res.json({ data: r.rows })
+  }
+  catch(err) { return next(err)}
+})
 export default router
