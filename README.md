@@ -1,9 +1,10 @@
 # Expense Tracker API (Node + TypeScript)
 
-API REST en **Node.js + Express + TypeScript** con **PostgreSQL (Docker)**, **tests (Jest + Supertest)**, **validación (Zod)** y **documentación OpenAPI + Swagger UI**.
+API REST en **Node.js + Express + TypeScript** con **PostgreSQL (Docker)**, **tests (Jest + Supertest)**, **validación (Zod)**, **auth (bcrypt + JWT + roles)** y **documentación OpenAPI + Swagger UI**.
 
 - Prefijo de versión: `/api/v1`
 - Swagger UI: `/docs/`
+- OpenAPI spec: `./openapi.yaml`
 
 ---
 
@@ -12,7 +13,8 @@ API REST en **Node.js + Express + TypeScript** con **PostgreSQL (Docker)**, **te
 - TypeScript
 - PostgreSQL (Docker Compose)
 - Zod (validación)
-- Auth: bcrypt + JWT
+- Auth: bcrypt + JWT (Bearer)
+- Roles: `user` / `admin` (admin-only endpoints con `requireRole`)
 - Testing: Jest + Supertest
 - OpenAPI 3.0 + Swagger UI (`/docs/`)
 
@@ -21,7 +23,7 @@ API REST en **Node.js + Express + TypeScript** con **PostgreSQL (Docker)**, **te
 ## Requisitos
 - Node.js (LTS recomendado)
 - npm
-- Docker Desktop / Docker Engine (para PostgreSQL)
+- Docker Engine / Docker Desktop (para PostgreSQL)
 
 ---
 
@@ -29,7 +31,8 @@ API REST en **Node.js + Express + TypeScript** con **PostgreSQL (Docker)**, **te
 
 ```bash
 npm install
-docker compose up -d
+docker compose up -d db
+npm run db:migrate
 npm test
 npm run dev
 ```
@@ -43,7 +46,11 @@ npm run dev
 
 ## Variables de entorno
 
-Este proyecto usa `scripts/ensure-env.mjs` (se ejecuta en `pretest`) para crear `.env` desde `.env.example` si falta.
+Este proyecto usa `scripts/ensure-env.mjs` para crear `.env` desde `.env.example` si falta.
+Se ejecuta automáticamente en:
+- `pretest`
+- `predb:migrate`
+- `predb:reset`
 
 Aun así, asegúrate de tener (en `.env` o `.env.example`):
 
@@ -53,7 +60,9 @@ JWT_SECRET=change_me_in_dev
 ```
 
 - `DATABASE_URL`: conexión a Postgres.
-- `JWT_SECRET`: secreto para firmar/verificar JWT (necesario para `/users/me`).
+- `JWT_SECRET`: secreto para firmar/verificar JWT (necesario para endpoints protegidos).
+
+> Si tu Docker Compose publica Postgres en **5433** (ej. `0.0.0.0:5433->5432`), ajusta `DATABASE_URL` a `localhost:5433` (compruébalo con `docker compose ps`).
 
 ---
 
@@ -62,13 +71,29 @@ JWT_SECRET=change_me_in_dev
 Levantar DB:
 
 ```bash
-docker compose up -d
+docker compose up -d db
 ```
 
-Parar y borrar volúmenes (reset total):
+### Migraciones (recomendado)
+Aplica **todos** los ficheros `sql/*.sql` en orden:
+
+```bash
+npm run db:migrate
+```
+
+### Reset de DB (solo DEV)
+⚠️ Esto **borra y recrea** la base de datos, y luego vuelve a ejecutar migraciones.
+
+```bash
+npm run db:reset
+```
+
+Alternativa “bruta” borrando volúmenes:
 
 ```bash
 docker compose down -v
+docker compose up -d db
+npm run db:migrate
 ```
 
 ---
@@ -88,7 +113,6 @@ npm run dev
 ---
 
 ## API Docs (Swagger / OpenAPI)
-
 - **Swagger UI**: `GET /docs/`
 - **OpenAPI spec**: `./openapi.yaml`
 
@@ -125,13 +149,14 @@ Los errores devuelven un objeto con `error`:
 Códigos usados:
 - `VALIDATION_ERROR` (400)
 - `UNAUTHORIZED` (401)
+- `FORBIDDEN` (403)
 - `NOT_FOUND` (404)
 - `CONFLICT` (409)
 - `INTERNAL_ERROR` (500)
 
 ---
 
-## Auth (registro, login y endpoint protegido)
+## Auth (registro, login y endpoints protegidos)
 
 ### 1) Registro
 **POST** `/api/v1/auth/register`
@@ -188,6 +213,26 @@ Respuesta (200):
 
 ---
 
+### Users
+
+#### Listado (admin-only)
+**GET** `/api/v1/users`
+
+Headers:
+- `Authorization: Bearer <JWT>`
+
+Respuestas:
+- `200` → `{ "data": [ { "id": 1, "email": "...", "role": "admin", "created_at": "..." }, ... ] }`
+- `401 UNAUTHORIZED` (sin token / token inválido)
+- `403 FORBIDDEN` (token válido pero rol insuficiente)
+
+Ejemplo con curl:
+```bash
+curl -s -X GET http://localhost:3000/api/v1/users   -H "Authorization: Bearer <JWT>"
+```
+
+---
+
 ### Projects
 
 #### Listado (paginado)
@@ -198,7 +243,7 @@ Query params:
 - `page` (opcional): entero >= 1 (default 1)
 
 Respuestas:
-- `200` → `{ data: [...], meta: { page, limit, total } }`
+- `200` → `{ "data": [...], "meta": { "page", "limit", "total" } }`
 - `400 VALIDATION_ERROR`
 
 Ejemplos:
@@ -256,7 +301,8 @@ Tests de integración con **Supertest** cubriendo:
 - `/api/v1/health`
 - CRUD Projects (GET/POST/GET by id/PUT/DELETE)
 - Auth: register/login
-- Users: `/api/v1/users/me` (401/200)
+- Users: `/api/v1/users/me`
+- Users admin-only: `GET /api/v1/users` (401/403/200)
 - Swagger UI (`/docs/`)
 
 Ejecutar:
@@ -267,8 +313,7 @@ npm test
 ---
 
 ## Roadmap (próximos pasos)
-- Roles/Permisos: `requireRole` para endpoints “admin-only”
-- Entidad principal (expenses/transactions) y relaciones
-- Docker para la app + despliegue (Render/Fly.io)
+- Entidad principal: **expenses/transactions** + relaciones (por `user_id`)
 - Mejoras OpenAPI: tags, examples, componentes reutilizables
+- Docker para la app + despliegue (Render/Fly.io)
 - Observabilidad: requestId + logs consistentes
