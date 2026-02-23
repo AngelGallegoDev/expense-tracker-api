@@ -2,6 +2,7 @@ import express from "express"
 import healthRoutes from "./routes/health.routes"
 import projectRoutes from "./routes/projects.routes"
 import authRegisterRoutes from "./routes/auth.routes"
+import expensesRoutes from "./routes/expenses.routes"
 import usersRouter from "./routes/users.routes"
 import { Errors } from "./errors"
 import * as swaggerUi from "swagger-ui-express";
@@ -18,6 +19,7 @@ const openapiDoc = YAML.parse(fs.readFileSync(openapiPath, "utf8"));
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(openapiDoc));
 app.use(`${API_PREFIX}/health`, healthRoutes)
 app.use(`${API_PREFIX}/projects`, projectRoutes)
+app.use(`${API_PREFIX}/expenses`, expensesRoutes)
 app.use(`${API_PREFIX}/auth`, authRegisterRoutes)
 app.use(`${API_PREFIX}/users`, usersRouter);
 app.use((_req, res) => {
