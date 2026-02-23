@@ -3,7 +3,7 @@ import { pool } from "../src/db"
 import { app } from "../src/app"
 
 async function registerAndLogin() {
-    const email = `u_${Date.now()}@mail.com`
+    const email = `u_${Date.now()}_${Math.random().toString(16).slice(2)}@mail.com`
     const password = "12345678"
 
     const reg = await request(app).post("/api/v1/auth/register").send({ email, password }).expect(201)
@@ -16,7 +16,7 @@ async function registerAndLogin() {
     return { user, token }
 }
 
-describe("ET /api/v1/projects", () => {
+describe("ET /api/v1/expenses", () => {
     it("401 when missing bearer token", async () => {
         const res = await request(app)
             .post("/api/v1/expenses")
@@ -49,8 +49,6 @@ describe("ET /api/v1/projects", () => {
         expect(res.body.data).toEqual(expect.objectContaining({ amount_cents: 1234, description: "cafe" }))
         expect(Number(res.body.data.user_id)).toBe(Number(user.id))
 
-        // cleanup (elige 1):
         await pool.query("DELETE FROM expenses WHERE id = $1", [res.body.data.id])
-        await pool.query("DELETE FROM users WHERE id = $1", [user.id])
     })
 }) 
