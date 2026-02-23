@@ -295,11 +295,43 @@ Respuestas:
 
 ---
 
+### Expenses
+
+#### Crear (protegido)
+**POST** `/api/v1/expenses`
+
+Headers:
+- `Authorization: Bearer <JWT>`
+
+Body:
+```json
+{ "amount_cents": 1234, "description": "Coffee", "occurred_at": "2026-02-23T10:00:00.000Z" }
+```
+
+- `occurred_at` es opcional (si no se envía, se usa `NOW()`).
+- `user_id` **no** se envía en el body: se toma del token (usuario autenticado).
+
+Respuestas:
+- `201` → `{ "data": { "id": 10, "user_id": 1, "amount_cents": 1234, "description": "Coffee", "occurred_at": "...", "created_at": "..." } }`
+- `400 VALIDATION_ERROR`
+- `401 UNAUTHORIZED`
+
+Ejemplo con curl:
+```bash
+curl -s -X POST http://localhost:3000/api/v1/expenses \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <JWT>" \
+  -d '{ "amount_cents": 1234, "description": "Coffee" }'
+```
+
+---
+
 ## Testing
 
 Tests de integración con **Supertest** cubriendo:
 - `/api/v1/health`
 - CRUD Projects (GET/POST/GET by id/PUT/DELETE)
+- Expenses: `POST /api/v1/expenses` (401/400/201)
 - Auth: register/login
 - Users: `/api/v1/users/me`
 - Users admin-only: `GET /api/v1/users` (401/403/200)
@@ -313,7 +345,8 @@ npm test
 ---
 
 ## Roadmap (próximos pasos)
-- Entidad principal: **expenses/transactions** + relaciones (por `user_id`)
+- Expenses: `GET /api/v1/expenses` (paginado por `user_id`) + `meta.total` + tests
 - Mejoras OpenAPI: tags, examples, componentes reutilizables
 - Docker para la app + despliegue (Render/Fly.io)
 - Observabilidad: requestId + logs consistentes
+
