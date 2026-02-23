@@ -3,7 +3,7 @@ import { z } from "zod"
 import { pool } from "../db"
 import { Errors } from "../errors"
 const MAX_LIMIT = 20
-const DEFAULT_LIMIT = 10
+const DEFAULT_LIMIT = 10            
 const createProjectSchema = z.object({
     name: z.string().min(1),
     price_cents: z.number().int().nonnegative(),
