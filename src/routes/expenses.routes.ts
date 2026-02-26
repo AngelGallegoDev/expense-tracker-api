@@ -60,4 +60,25 @@ router.post("/", requireAuth, async (req, res, next) => {
     }
 })
 
+const idParamSchema = z.object({
+    id: z.coerce.number().int().positive(),
+})
+
+router.delete("/:id", requireAuth, async (req, res, next) => {
+    const p = idParamSchema.safeParse(req.params)
+    if (!p.success) return res.status(400).json(Errors.validation("Invalid id"))
+    if (!req.userId) return res.status(401).json(Errors.unauthorized("Missing auth"))
+
+    try {
+        const r = await pool.query(
+            `DELETE FROM expenses WHERE id=$1 AND user_id=$2 RETURNING id`,
+            [p.data.id, req.userId]
+        )
+        if (r.rowCount === 0) return res.status(404).json(Errors.notFound("Expense not found"))
+        return res.status(204).send()
+    } catch (err) {
+        return next(err)
+    }
+})
+
 export default router
