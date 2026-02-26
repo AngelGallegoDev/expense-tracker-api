@@ -16,7 +16,7 @@ async function registerAndLogin() {
     return { user, token }
 }
 
-describe("ET /api/v1/expenses", () => {
+describe("POST /api/v1/expenses", () => {
     it("401 when missing bearer token", async () => {
         const res = await request(app)
             .post("/api/v1/expenses")
@@ -51,4 +51,68 @@ describe("ET /api/v1/expenses", () => {
 
         await pool.query("DELETE FROM expenses WHERE id = $1", [res.body.data.id])
     })
-}) 
+
+
+})
+describe("GET /api/v1/expenses", () => {
+  it("401 without token", async () => {
+    const res = await request(app).get("/api/v1/expenses").expect(401)
+    expect(res.body).toHaveProperty("error.code", "UNAUTHORIZED")
+  })
+
+  it("only returns caller's expenses (isolation)", async () => {
+    const a = await registerAndLogin()
+    const b = await registerAndLogin()
+
+    const expA = await request(app).post("/api/v1/expenses")
+      .set("Authorization", `Bearer ${a.token}`)
+      .send({ amount_cents: 111, description: "onlyA" })
+      .expect(201)
+
+    const expB = await request(app).post("/api/v1/expenses")
+      .set("Authorization", `Bearer ${b.token}`)
+      .send({ amount_cents: 222, description: "onlyB" })
+      .expect(201)
+
+    const res = await request(app)
+      .get("/api/v1/expenses?limit=10&page=1")
+      .set("Authorization", `Bearer ${a.token}`)
+      .expect(200)
+
+    expect(res.body.data.some((e: any) => e.description === "onlyB")).toBe(false)
+    expect(res.body.meta.total).toBe(1)
+
+    await pool.query("DELETE FROM expenses WHERE id = ANY($1::int[])", [[expA.body.data.id, expB.body.data.id]])
+  })
+
+  it("paginates and returns meta.total", async () => {
+    const a = await registerAndLogin()
+
+    const createdIds: number[] = []
+    for (const desc of ["e1", "e2", "e3"]) {
+      const r = await request(app).post("/api/v1/expenses")
+        .set("Authorization", `Bearer ${a.token}`)
+        .send({ amount_cents: 100, description: desc })
+        .expect(201)
+      createdIds.push(r.body.data.id)
+    }
+
+    const p1 = await request(app)
+      .get("/api/v1/expenses?limit=2&page=1")
+      .set("Authorization", `Bearer ${a.token}`)
+      .expect(200)
+
+    expect(p1.body.meta.total).toBe(3)
+    expect(p1.body.data).toHaveLength(2)
+
+    const p2 = await request(app)
+      .get("/api/v1/expenses?limit=2&page=2")
+      .set("Authorization", `Bearer ${a.token}`)
+      .expect(200)
+
+    expect(p2.body.meta.total).toBe(3)
+    expect(p2.body.data).toHaveLength(1)
+
+    await pool.query("DELETE FROM expenses WHERE id = ANY($1::int[])", [createdIds])
+  })
+})
