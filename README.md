@@ -324,6 +324,30 @@ curl -s -X POST http://localhost:3000/api/v1/expenses \
   -d '{ "amount_cents": 1234, "description": "Coffee" }'
 ```
 
+
+#### Listado (protegido, paginado por usuario)
+**GET** `/api/v1/expenses`
+
+Headers:
+- `Authorization: Bearer <JWT>`
+
+Query params:
+- `limit` (opcional): entero 1..20 (default 10)
+- `page` (opcional): entero >= 1 (default 1)
+
+Respuestas:
+- `200` → `{ "data": [ ... ], "meta": { "page": 1, "limit": 10, "total": 5 } }`
+- `400 VALIDATION_ERROR` (query inválida)
+- `401 UNAUTHORIZED`
+
+Ejemplo con curl:
+```bash
+curl -s "http://localhost:3000/api/v1/expenses?page=1&limit=10" \
+  -H "Authorization: Bearer <JWT>"
+```
+
+
+
 ---
 
 ## Testing
@@ -331,7 +355,7 @@ curl -s -X POST http://localhost:3000/api/v1/expenses \
 Tests de integración con **Supertest** cubriendo:
 - `/api/v1/health`
 - CRUD Projects (GET/POST/GET by id/PUT/DELETE)
-- Expenses: `POST /api/v1/expenses` (401/400/201)
+- Expenses: `POST /api/v1/expenses` (401/400/201) + `GET /api/v1/expenses` (401 + aislamiento por user_id + meta.total)
 - Auth: register/login
 - Users: `/api/v1/users/me`
 - Users admin-only: `GET /api/v1/users` (401/403/200)
@@ -345,7 +369,7 @@ npm test
 ---
 
 ## Roadmap (próximos pasos)
-- Expenses: `GET /api/v1/expenses` (paginado por `user_id`) + `meta.total` + tests
+- Expenses: filtros (from/to) + orden configurable + `DELETE /api/v1/expenses/:id` (owner-only)
 - Mejoras OpenAPI: tags, examples, componentes reutilizables
 - Docker para la app + despliegue (Render/Fly.io)
 - Observabilidad: requestId + logs consistentes
