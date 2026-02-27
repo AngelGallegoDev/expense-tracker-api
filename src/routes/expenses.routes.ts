@@ -7,6 +7,17 @@ import { requireAuth } from "../middlewares/requireAuth";
 const router = express.Router()
 const MAX_LIMIT = 20
 const DEFAULT_LIMIT = 10
+
+const idSchema = z.object({
+    id: z.coerce.number().int().positive()
+})
+
+const patchExpensSchema = z.object({
+    amount_cents: z.number().int().positive().optional(),
+    description: z.string().trim().min(1).optional(),
+    occurred_at: z.string().datetime().optional()
+}).refine((v) => Object.keys(v).length > 0, { message: "Body cannot be empty" });
+
 const paginationSchema = z.object({
     limit: z.coerce.number().int().min(1).max(MAX_LIMIT).optional().default(DEFAULT_LIMIT),
     page: z.coerce.number().int().min(1).optional().default(1),
@@ -79,6 +90,41 @@ router.delete("/:id", requireAuth, async (req, res, next) => {
     } catch (err) {
         return next(err)
     }
+})
+
+router.patch("/:id", requireAuth, async (req, res, next) => {
+    const parsedParams = idSchema.safeParse(req.params)
+    if (!parsedParams.success) return res.status(400).json(Errors.validation("id must be a positive integer"))
+
+    const parsedBody = patchExpensSchema.safeParse(req.body)
+    if (!parsedBody.success) return res.status(400).json(Errors.validation("Invalid request body"))
+    if (!req.userId) return res.status(401).json(Errors.unauthorized("Missing auth"))
+    const id = parsedParams.data.id
+    const { amount_cents, description, occurred_at } = parsedBody.data
+
+    try {
+        const q = `
+  UPDATE expenses
+  SET
+    amount_cents = COALESCE($1, amount_cents),
+    description  = COALESCE($2, description),
+    occurred_at  = COALESCE($3, occurred_at)
+  WHERE id = $4 AND user_id = $5
+  RETURNING id, user_id, amount_cents, description, occurred_at, created_at
+`;
+
+        const r = await pool.query(q, [
+            amount_cents ?? null,
+            description ?? null,
+            occurred_at ?? null,
+            id,
+            req.userId,
+        ]);
+
+        if (r.rowCount === 0) return res.status(404).json(Errors.notFound("Expense not found"));
+        return res.status(200).json({ data: r.rows[0] });
+    }
+    catch (err) { return next(err) }
 })
 
 export default router
