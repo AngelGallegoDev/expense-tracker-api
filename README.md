@@ -347,6 +347,62 @@ curl -s "http://localhost:3000/api/v1/expenses?page=1&limit=10" \
 ```
 
 
+#### Eliminar (protegido, owner-only)
+**DELETE** `/api/v1/expenses/:id`
+
+Headers:
+- `Authorization: Bearer <JWT>`
+
+Notas:
+- Solo puedes borrar **tus** gastos (owner-only).
+- Si el gasto no existe **o** no es tuyo → `404 NOT_FOUND` (no se filtra información).
+
+Respuestas:
+- `204 No Content`
+- `400 VALIDATION_ERROR` (id inválido)
+- `401 UNAUTHORIZED`
+- `404 NOT_FOUND`
+
+Ejemplo con curl:
+```bash
+curl -i -X DELETE http://localhost:3000/api/v1/expenses/10 \
+  -H "Authorization: Bearer <JWT>"
+```
+
+#### Actualizar (protegido, owner-only)
+**PATCH** `/api/v1/expenses/:id`
+
+Headers:
+- `Authorization: Bearer <JWT>`
+
+Body (parcial, al menos 1 campo):
+```json
+{ "description": "Coffee beans" }
+```
+
+Campos permitidos:
+- `amount_cents` (opcional): entero > 0
+- `description` (opcional): string no vacío (trim)
+- `occurred_at` (opcional): ISO date-time
+
+Notas:
+- Solo puedes actualizar **tus** gastos (owner-only).
+- Si el gasto no existe **o** no es tuyo → `404 NOT_FOUND` (no se filtra información).
+- Si el body está vacío `{}` → `400 VALIDATION_ERROR`.
+
+Respuestas:
+- `200` → `{ "data": { ...expense actualizado... } }`
+- `400 VALIDATION_ERROR` (id inválido, body vacío o body inválido)
+- `401 UNAUTHORIZED`
+- `404 NOT_FOUND`
+
+Ejemplo con curl:
+```bash
+curl -s -X PATCH http://localhost:3000/api/v1/expenses/10   -H "Content-Type: application/json"   -H "Authorization: Bearer <JWT>"   -d '{ "description": "Coffee beans" }'
+```
+
+
+
 
 ---
 
@@ -355,7 +411,7 @@ curl -s "http://localhost:3000/api/v1/expenses?page=1&limit=10" \
 Tests de integración con **Supertest** cubriendo:
 - `/api/v1/health`
 - CRUD Projects (GET/POST/GET by id/PUT/DELETE)
-- Expenses: `POST /api/v1/expenses` (401/400/201) + `GET /api/v1/expenses` (401 + aislamiento por user_id + meta.total)
+- Expenses: `POST /api/v1/expenses` (401/400/201) + `GET /api/v1/expenses` (401 + aislamiento por user_id + meta.total) + `PATCH /api/v1/expenses/:id` (401/400/404/200 owner-only) + `DELETE /api/v1/expenses/:id` (401/400/204/404 owner-only)
 - Auth: register/login
 - Users: `/api/v1/users/me`
 - Users admin-only: `GET /api/v1/users` (401/403/200)
@@ -369,7 +425,7 @@ npm test
 ---
 
 ## Roadmap (próximos pasos)
-- Expenses: filtros (from/to) + orden configurable + `DELETE /api/v1/expenses/:id` (owner-only)
+- Expenses: filtros (from/to) + orden configurable
 - Mejoras OpenAPI: tags, examples, componentes reutilizables
 - Docker para la app + despliegue (Render/Fly.io)
 - Observabilidad: requestId + logs consistentes
