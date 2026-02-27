@@ -144,3 +144,86 @@ describe("DELETE /api/v1/expenses/:id", () => {
             .expect(204)
     })
 })
+describe("PATCH /api/v1/expenses/:id", () => {
+    it("expect 401 no token", async () => {
+        const a = await registerAndLogin()
+        const created = await request(app).post("/api/v1/expenses")
+            .set("Authorization", `Bearer ${a.token}`)
+            .send({ amount_cents: 100, description: "toDel" }).expect(201)
+
+        await request(app).patch(`/api/v1/expenses/${created.body.data.id}`)
+            .send({ amount_cents: 100, description: "x" })
+            .expect(401)
+        await pool.query("DELETE FROM expenses WHERE id = $1", [created.body.data.id]);
+    })
+    it("400 when id is invalid", async () => {
+        const a = await registerAndLogin();
+
+        const res = await request(app)
+            .patch("/api/v1/expenses/abc")
+            .set("Authorization", `Bearer ${a.token}`)
+            .send({ description: "x" })
+            .expect(400);
+
+        expect(res.body).toHaveProperty("error.code", "VALIDATION_ERROR");
+    });
+    it("400 when body is empty", async () => {
+        const a = await registerAndLogin();
+        const created = await request(app).post("/api/v1/expenses")
+            .set("Authorization", `Bearer ${a.token}`)
+            .send({ amount_cents: 100, description: "seed" })
+            .expect(201);
+
+        await request(app)
+            .patch(`/api/v1/expenses/${created.body.data.id}`)
+            .set("Authorization", `Bearer ${a.token}`)
+            .send({})
+            .expect(400);
+
+        await pool.query("DELETE FROM expenses WHERE id = $1", [created.body.data.id]);
+    });
+    it("200 updates description (owner)", async () => {
+        const a = await registerAndLogin();
+        const created = await request(app).post("/api/v1/expenses")
+            .set("Authorization", `Bearer ${a.token}`)
+            .send({ amount_cents: 1234, description: "cafe" })
+            .expect(201);
+
+        const res = await request(app)
+            .patch(`/api/v1/expenses/${created.body.data.id}`)
+            .set("Authorization", `Bearer ${a.token}`)
+            .send({ description: "cafe con leche" })
+            .expect(200);
+
+        expect(res.body.data.description).toBe("cafe con leche");
+        expect(String(res.body.data.id)).toBe(String(created.body.data.id));
+
+        await pool.query("DELETE FROM expenses WHERE id = $1", [created.body.data.id]);
+    });
+    it("404 when expense does not exist", async () => {
+        const a = await registerAndLogin();
+
+        await request(app)
+            .patch("/api/v1/expenses/999999999")
+            .set("Authorization", `Bearer ${a.token}`)
+            .send({ description: "x" })
+            .expect(404);
+    });
+    it("404 when editing someone else's expense", async () => {
+        const a = await registerAndLogin();
+        const b = await registerAndLogin();
+
+        const created = await request(app).post("/api/v1/expenses")
+            .set("Authorization", `Bearer ${a.token}`)
+            .send({ amount_cents: 100, description: "notYours" })
+            .expect(201);
+
+        await request(app)
+            .patch(`/api/v1/expenses/${created.body.data.id}`)
+            .set("Authorization", `Bearer ${b.token}`)
+            .send({ description: "hacked" })
+            .expect(404);
+
+        await pool.query("DELETE FROM expenses WHERE id = $1", [created.body.data.id]);
+    });
+})
