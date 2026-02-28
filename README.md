@@ -347,6 +347,28 @@ curl -s "http://localhost:3000/api/v1/expenses?page=1&limit=10" \
 ```
 
 
+#### Leer detalle (protegido, owner-only)
+**GET** `/api/v1/expenses/:id`
+
+Headers:
+- `Authorization: Bearer <JWT>`
+
+Notas:
+- Solo puedes leer **tus** gastos (owner-only).
+- Si el gasto no existe **o** no es tuyo → `404 NOT_FOUND` (no se filtra información).
+
+Respuestas:
+- `200` → `{ "data": { "id": 10, "amount_cents": 1234, "description": "Coffee", "occurred_at": "...", "created_at": "..." } }`
+- `400 VALIDATION_ERROR` (id inválido)
+- `401 UNAUTHORIZED`
+- `404 NOT_FOUND`
+
+Ejemplo con curl:
+```bash
+curl -s http://localhost:3000/api/v1/expenses/10   -H "Authorization: Bearer <JWT>"
+```
+
+
 #### Eliminar (protegido, owner-only)
 **DELETE** `/api/v1/expenses/:id`
 
@@ -411,7 +433,7 @@ curl -s -X PATCH http://localhost:3000/api/v1/expenses/10   -H "Content-Type: ap
 Tests de integración con **Supertest** cubriendo:
 - `/api/v1/health`
 - CRUD Projects (GET/POST/GET by id/PUT/DELETE)
-- Expenses: `POST /api/v1/expenses` (401/400/201) + `GET /api/v1/expenses` (401 + aislamiento por user_id + meta.total) + `PATCH /api/v1/expenses/:id` (401/400/404/200 owner-only) + `DELETE /api/v1/expenses/:id` (401/400/204/404 owner-only)
+- Expenses: `POST /api/v1/expenses` (401/400/201) + `GET /api/v1/expenses` (401 + aislamiento por user_id + meta.total) + `GET /api/v1/expenses/:id` (401/400/404/200 owner-only) + `PATCH /api/v1/expenses/:id` (401/400/404/200 owner-only) + `DELETE /api/v1/expenses/:id` (401/400/204/404 owner-only)
 - Auth: register/login
 - Users: `/api/v1/users/me`
 - Users admin-only: `GET /api/v1/users` (401/403/200)
