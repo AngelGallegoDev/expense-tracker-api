@@ -126,6 +126,77 @@ describe("GET /api/v1/expenses", () => {
         expect(res.body).toHaveProperty("error.code", "VALIDATION_ERROR")
     })
 })
+describe("GET /api/v1/expenses/:id", () => {
+    it("404 when trying to read someone else's expense", async () => {
+        const a = await registerAndLogin()
+        const b = await registerAndLogin()
+
+        const created = await request(app).post("/api/v1/expenses")
+            .set("Authorization", `Bearer ${a.token}`)
+            .send({ amount_cents: 100, description: "notYours" })
+            .expect(201)
+
+        await request(app)
+            .get(`/api/v1/expenses/${created.body.data.id}`)
+            .set("Authorization", `Bearer ${b.token}`)
+            .expect(404)
+
+        await pool.query("DELETE FROM expenses WHERE id = $1", [created.body.data.id])
+    })
+    it("401 without token", async () => {
+        const res = await request(app)
+            .get("/api/v1/expenses/1")
+            .expect(401)
+
+        expect(res.body).toHaveProperty("error.code", "UNAUTHORIZED")
+    })
+    it("400 when id is invalid", async () => {
+        const a = await registerAndLogin()
+
+        const res = await request(app)
+            .get("/api/v1/expenses/abc")
+            .set("Authorization", `Bearer ${a.token}`)
+            .expect(400)
+
+        expect(res.body).toHaveProperty("error.code", "VALIDATION_ERROR")
+    })
+    it("404 when expense does not exist", async () => {
+        const a = await registerAndLogin()
+
+        await request(app)
+            .get("/api/v1/expenses/999999999")
+            .set("Authorization", `Bearer ${a.token}`)
+            .expect(404)
+    })
+    it("200 returns expense for owner", async () => {
+        const a = await registerAndLogin()
+
+        const created = await request(app)
+            .post("/api/v1/expenses")
+            .set("Authorization", `Bearer ${a.token}`)
+            .send({ amount_cents: 100, description: "readMe" })
+            .expect(201)
+
+        const res = await request(app)
+            .get(`/api/v1/expenses/${created.body.data.id}`)
+            .set("Authorization", `Bearer ${a.token}`)
+            .expect(200)
+
+        expect(res.body.data.id).toBe(created.body.data.id)
+        expect(res.body.data.description).toBe("readMe")
+
+        await pool.query("DELETE FROM expenses WHERE id = $1", [created.body.data.id])
+    })
+    it("400 when id is not an integer", async () => {
+        const a = await registerAndLogin()
+
+        await request(app)
+            .get("/api/v1/expenses/1.2")
+            .set("Authorization", `Bearer ${a.token}`)
+            .expect(400)
+    })
+
+})
 describe("DELETE /api/v1/expenses/:id", () => {
     it("204 owner can delete", async () => {
         const a = await registerAndLogin()
