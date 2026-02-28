@@ -32,22 +32,39 @@ const createExpenseSchema = z.object({
 router.get("/", requireAuth, async (req, res, next) => {
     const qParsed = paginationSchema.safeParse(req.query)
     if (!qParsed.success) return res.status(400).json(Errors.validation("Invalid query params"))
-    if (!req.userId) return res.status(401).json(Errors.unauthorized("Missing auth"))
+    const userId = req.userId!
 
     const { page, limit } = qParsed.data
     const offset = (page - 1) * limit
 
     try {
-        const totalR = await pool.query(`SELECT COUNT(*)::int AS total FROM expenses WHERE user_id=$1`, [req.userId])
+        const totalR = await pool.query(`SELECT COUNT(*)::int AS total FROM expenses WHERE user_id=$1`, [userId])
         const listR = await pool.query(
             `SELECT id, user_id, amount_cents, description, occurred_at, created_at
        FROM expenses WHERE user_id=$1
        ORDER BY occurred_at DESC, id DESC
        LIMIT $2 OFFSET $3`,
-            [req.userId, limit, offset]
+            [userId, limit, offset]
         )
         return res.json({ data: listR.rows, meta: { page, limit, total: totalR.rows[0].total } })
     } catch (err) {
+        return next(err)
+    }
+})
+router.get("/:id", requireAuth, async (req, res, next) => {
+    const parsedParams = idSchema.safeParse(req.params)
+    if (!parsedParams.success) return res.status(400).json(Errors.validation("Invalid id"))
+    const userId = req.userId!
+    const id = parsedParams.data.id
+    try {
+        const { rows } = await pool.query(`SELECT id, amount_cents, description, occurred_at, created_at
+       FROM expenses
+       WHERE id = $1 AND user_id = $2`,
+            [id, userId])
+        if (rows.length === 0) return res.status(404).json(Errors.notFound("Expense not found"))
+        return res.status(200).json({ data: rows[0] })
+    }
+    catch (err) {
         return next(err)
     }
 })
@@ -55,7 +72,7 @@ router.get("/", requireAuth, async (req, res, next) => {
 router.post("/", requireAuth, async (req, res, next) => {
     const parsed = createExpenseSchema.safeParse(req.body)
     if (!parsed.success) return res.status(400).json(Errors.validation("Invalid request body"))
-    if (!req.userId) return res.status(401).json(Errors.unauthorized("Missing auth"))
+    const userId = req.userId!
 
     try {
         const { amount_cents, description, occurred_at } = parsed.data
@@ -64,26 +81,22 @@ router.post("/", requireAuth, async (req, res, next) => {
       VALUES ($1, $2, $3, COALESCE($4, NOW()))
       RETURNING id, user_id, amount_cents, description, occurred_at, created_at
     `
-        const r = await pool.query(q, [req.userId!, amount_cents, description, occurred_at ?? null])
+        const r = await pool.query(q, [userId, amount_cents, description, occurred_at ?? null])
         return res.status(201).json({ data: r.rows[0] })
     } catch (err) {
         return next(err)
     }
 })
 
-const idParamSchema = z.object({
-    id: z.coerce.number().int().positive(),
-})
-
 router.delete("/:id", requireAuth, async (req, res, next) => {
-    const p = idParamSchema.safeParse(req.params)
+    const p = idSchema.safeParse(req.params)
     if (!p.success) return res.status(400).json(Errors.validation("Invalid id"))
-    if (!req.userId) return res.status(401).json(Errors.unauthorized("Missing auth"))
+    const userId = req.userId!
 
     try {
         const r = await pool.query(
             `DELETE FROM expenses WHERE id=$1 AND user_id=$2 RETURNING id`,
-            [p.data.id, req.userId]
+            [p.data.id, userId]
         )
         if (r.rowCount === 0) return res.status(404).json(Errors.notFound("Expense not found"))
         return res.status(204).send()
@@ -98,7 +111,7 @@ router.patch("/:id", requireAuth, async (req, res, next) => {
 
     const parsedBody = patchExpensSchema.safeParse(req.body)
     if (!parsedBody.success) return res.status(400).json(Errors.validation("Invalid request body"))
-    if (!req.userId) return res.status(401).json(Errors.unauthorized("Missing auth"))
+    const userId = req.userId!
     const id = parsedParams.data.id
     const { amount_cents, description, occurred_at } = parsedBody.data
 
@@ -118,7 +131,7 @@ router.patch("/:id", requireAuth, async (req, res, next) => {
             description ?? null,
             occurred_at ?? null,
             id,
-            req.userId,
+            userId,
         ]);
 
         if (r.rowCount === 0) return res.status(404).json(Errors.notFound("Expense not found"));
