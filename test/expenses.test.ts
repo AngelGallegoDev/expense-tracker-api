@@ -115,6 +115,16 @@ describe("GET /api/v1/expenses", () => {
 
         await pool.query("DELETE FROM expenses WHERE id = ANY($1::int[])", [createdIds])
     })
+    it("400 when query params are invalid", async () => {
+        const { token } = await registerAndLogin()
+
+        const res = await request(app)
+            .get("/api/v1/expenses?limit=0&page=1")
+            .set("Authorization", `Bearer ${token}`)
+            .expect(400)
+
+        expect(res.body).toHaveProperty("error.code", "VALIDATION_ERROR")
+    })
 })
 describe("DELETE /api/v1/expenses/:id", () => {
     it("204 owner can delete", async () => {
