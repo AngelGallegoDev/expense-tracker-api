@@ -1,7 +1,7 @@
 
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { Errors } from "../errors";
+import { Errors, withRequestId } from "../errors";
 
 declare global {
   namespace Express {
@@ -26,20 +26,26 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   const token = extractBearerToken(req);
 
   if (!token) {
-    return res.status(401).json(Errors.unauthorized("Missing bearer token"));
+    return res
+      .status(401)
+      .json(withRequestId(Errors.unauthorized("Missing bearer token"), req.requestId));
   }
 
   const secret = process.env.JWT_SECRET;
   if (!secret) {
 
-    return res.status(500).json(Errors.internal("Missing JWT_SECRET"));
+    return res
+      .status(500)
+      .json(withRequestId(Errors.internal("Missing JWT_SECRET"), req.requestId));
   }
 
   try {
     const decoded = jwt.verify(token, secret);
 
     if (typeof decoded === "string" || decoded == null) {
-      return res.status(401).json(Errors.unauthorized("Invalid token payload"));
+      return res
+        .status(401)
+        .json(withRequestId(Errors.unauthorized("Invalid token payload"), req.requestId));
     }
 
     const sub = (decoded as jwt.JwtPayload).sub;
@@ -49,12 +55,16 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
       typeof sub === "string" ? Number(sub) : typeof sub === "number" ? sub : NaN;
 
     if (!Number.isInteger(userId) || userId <= 0) {
-      return res.status(401).json(Errors.unauthorized("Invalid token subject"));
+      return res
+        .status(401)
+        .json(withRequestId(Errors.unauthorized("Invalid token subject"), req.requestId));
     }
 
     req.userId = userId;
     return next();
   } catch {
-    return res.status(401).json(Errors.unauthorized("Invalid or expired token"));
+    return res
+      .status(401)
+      .json(withRequestId(Errors.unauthorized("Invalid or expired token"), req.requestId));
   }
 }
