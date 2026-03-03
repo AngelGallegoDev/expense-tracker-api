@@ -5,6 +5,7 @@ API REST en **Node.js + Express + TypeScript** con **PostgreSQL (Docker)**, **te
 - Prefijo de versión: `/api/v1`
 - Swagger UI: `/docs/`
 - OpenAPI spec: `./openapi.yaml`
+- Observabilidad: todas las respuestas incluyen el header `x-request-id`; en errores también se incluye `error.requestId` para correlación.
 
 ---
 
@@ -135,13 +136,16 @@ En endpoints de listado/paginación puede incluirse `meta`:
 ```
 
 ### Error
-Los errores devuelven un objeto con `error`:
+Los errores devuelven un objeto con `error`.
+
+**Observabilidad:** todas las respuestas incluyen el header `x-request-id`. En respuestas de error, el mismo valor se incluye en `error.requestId` para poder correlacionar el error con logs.
 
 ```json
 {
   "error": {
     "code": "VALIDATION_ERROR",
-    "message": "..."
+    "message": "...",
+    "requestId": "d304bb93-3c35-4bd5-a6a1-c422431f0bd9"
   }
 }
 ```
@@ -438,6 +442,7 @@ Tests de integración con **Supertest** cubriendo:
 - Users: `/api/v1/users/me`
 - Users admin-only: `GET /api/v1/users` (401/403/200)
 - Swagger UI (`/docs/`)
+- Observabilidad: requestId (`x-request-id` header + `error.requestId`) (404/401/403)
 
 Ejecutar:
 ```bash
@@ -450,5 +455,5 @@ npm test
 - Expenses: filtros (from/to) + orden configurable
 - Mejoras OpenAPI: tags, examples, componentes reutilizables
 - Docker para la app + despliegue (Render/Fly.io)
-- Observabilidad: requestId + logs consistentes
+- Observabilidad: logs consistentes (requestId ya implementado)
 

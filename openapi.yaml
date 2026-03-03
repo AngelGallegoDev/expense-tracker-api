@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Expense Tracker API
-  version: 1.3.0
+  version: 1.4.0
 servers:
 - url: http://localhost:3000
 tags:
@@ -28,6 +28,9 @@ paths:
                       status:
                         type: string
                         example: ok
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
       tags:
       - Health
   /api/v1/auth/register:
@@ -46,18 +49,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthRegisterResponse'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
         '400':
           description: Validation error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
         '409':
           description: Email already in use
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
       tags:
       - Auth
   /api/v1/auth/login:
@@ -76,18 +88,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthLoginResponse'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
         '400':
           description: Validation error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
         '401':
           description: Invalid credentials
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
       tags:
       - Auth
   /api/v1/users/me:
@@ -102,12 +123,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserMeResponse'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
         '401':
           description: Unauthorized (missing/invalid token)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
       tags:
       - Users
   /api/v1/projects:
@@ -134,12 +161,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProjectsListResponse'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
         '400':
           description: Validation error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
       tags:
       - Projects
     post:
@@ -157,12 +190,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProjectResponse'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
         '400':
           description: Validation error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
       tags:
       - Projects
   /api/v1/projects/{id}:
@@ -182,18 +221,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProjectResponse'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
         '400':
           description: Validation error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
         '404':
           description: Not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
       tags:
       - Projects
     put:
@@ -218,18 +266,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProjectResponse'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
         '400':
           description: Validation error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
         '404':
           description: Not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
       tags:
       - Projects
     delete:
@@ -244,18 +301,27 @@ paths:
       responses:
         '204':
           description: No content
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
         '400':
           description: Validation error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
         '404':
           description: Not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
       tags:
       - Projects
   /api/v1/users:
@@ -272,18 +338,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UsersListResponse'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
         '401':
           description: Unauthorized (missing/invalid token)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
         '403':
           description: Forbidden (insufficient role)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
   /api/v1/expenses:
     post:
       summary: Create an expense
@@ -304,18 +379,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ExpenseResponse'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
         '400':
           description: Validation error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
         '401':
           description: Unauthorized (missing/invalid token)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
     get:
       summary: List expenses (paginated)
       tags:
@@ -343,57 +427,78 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ExpensesListResponse'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
         '400':
           description: Validation error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
         '401':
           description: Unauthorized (missing/invalid token)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
   /api/v1/expenses/{id}:
-get:
-  summary: Get an expense by id (owner-only)
-  tags:
-  - Expenses
-  security:
-  - bearerAuth: []
-  parameters:
-  - in: path
-    name: id
-    required: true
-    schema:
-      type: integer
-      minimum: 1
-  responses:
-    '200':
-      description: OK
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ExpenseReadResponse'
-    '400':
-      description: Validation error
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ApiError'
-    '401':
-      description: Unauthorized (missing/invalid token)
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ApiError'
-    '404':
-      description: Expense not found
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ApiError'
+    get:
+      summary: Get an expense by id (owner-only)
+      tags:
+      - Expenses
+      security:
+      - bearerAuth: []
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpenseReadResponse'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
+        '401':
+          description: Unauthorized (missing/invalid token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
+        '404':
+          description: Expense not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
     patch:
       summary: Update an expense (owner-only, partial)
       tags:
@@ -420,24 +525,36 @@ get:
             application/json:
               schema:
                 $ref: '#/components/schemas/ExpenseResponse'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
         '400':
           description: Validation error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
         '401':
           description: Unauthorized (missing/invalid token)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
         '404':
           description: Expense not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
     delete:
       summary: Delete an expense (owner-only)
       tags:
@@ -454,25 +571,36 @@ get:
       responses:
         '204':
           description: No Content
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
         '400':
           description: Validation error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
         '401':
           description: Unauthorized (missing/invalid token)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
         '404':
           description: Expense not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
-
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
 components:
   securitySchemes:
     bearerAuth:
@@ -492,6 +620,10 @@ components:
             message:
               type: string
               example: Invalid request body
+            requestId:
+              type: string
+              description: Request correlation id. Same value as response header x-request-id.
+              example: d304bb93-3c35-4bd5-a6a1-c422431f0bd9
       required:
       - error
     Project:
@@ -766,7 +898,6 @@ components:
           $ref: '#/components/schemas/ExpenseRead'
       required:
       - data
-
     ExpenseCreate:
       type: object
       properties:
@@ -833,3 +964,9 @@ components:
       required:
       - data
       - meta
+  headers:
+    XRequestId:
+      description: Unique request identifier for correlating requests with server
+        logs.
+      schema:
+        type: string
