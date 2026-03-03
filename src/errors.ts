@@ -4,6 +4,11 @@ export function apiError(code: ApiErrorCode, message: string) {
     return { error: { code, message } }
 }
 
+export function withRequestId(body: any, requestId?: string) {
+  if (!requestId) return body;
+  return { ...body, error: { ...body.error, requestId } };
+}
+
 export const Errors = {
     validation: (message = "Validation error") => apiError("VALIDATION_ERROR", message),
     notFound: (message = "Route not found") => apiError("NOT_FOUND", message),
