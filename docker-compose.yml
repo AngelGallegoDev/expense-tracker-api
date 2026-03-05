@@ -11,7 +11,22 @@ services:
     volumes:
       - ./sql:/docker-entrypoint-initdb.d:ro
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d expense_tracker"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
+  api:
+    build: .
+    container_name: expense-tracker-api
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.docker
+    depends_on:
+      db:
+        condition: service_healthy
 
 volumes:
   pgdata:
