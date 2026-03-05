@@ -1,7 +1,7 @@
 import express from "express"
 import { z } from "zod"
 import { pool } from "../db"
-import { Errors } from "../errors"
+import { Errors, withRequestId } from "../errors"
 const MAX_LIMIT = 20
 const DEFAULT_LIMIT = 10            
 const createProjectSchema = z.object({
@@ -31,7 +31,7 @@ router.get("/", async (req, res) => {
                 ? `limit must be an integer between 1 and ${MAX_LIMIT}`
                 : "page must be an integer >= 1"
 
-        return res.status(400).json(Errors.validation(msg))
+        return res.status(400).json(withRequestId(Errors.validation(msg), req.requestId))
     }
     const { limit, page } = parsed.data
     const offset = (page - 1) * limit
@@ -57,13 +57,13 @@ router.get("/", async (req, res) => {
 
 router.get("/:id", async (req, res, next) => {
     const parsed = idSchema.safeParse(req.params)
-    if (!parsed.success) return res.status(400).json(Errors.validation("id must be a positive integer"))
+    if (!parsed.success) return res.status(400).json(withRequestId(Errors.validation("id must be a positive integer"), req.requestId))
 
     const { id } = parsed.data
     try {
         const { rows } = await pool.query("SELECT id, name, price_cents, created_at FROM projects WHERE id = $1",
             [id])
-        if (rows.length === 0) return res.status(404).json(Errors.notFound("Project not found"))
+        if (rows.length === 0) return res.status(404).json(withRequestId(Errors.notFound("Project not found"), req.requestId))
         return res.status(200).json({ data: rows[0] })
     }
     catch (err) {
@@ -73,7 +73,7 @@ router.get("/:id", async (req, res, next) => {
 
 router.post("/", async (req, res, next) => {
     const parsed = createProjectSchema.safeParse(req.body)
-    if (!parsed.success) return res.status(400).json(Errors.validation("Invalid request body"));
+    if (!parsed.success) return res.status(400).json(withRequestId(Errors.validation("Invalid request body"),req.requestId));
     try {
         const { name, price_cents } = parsed.data
         const { rows } = await pool.query(
@@ -90,14 +90,14 @@ router.post("/", async (req, res, next) => {
 
 router.delete("/:id", async (req, res, next) => {
     const parsed = idSchema.safeParse(req.params)
-    if (!parsed.success) return res.status(400).json(Errors.validation("id must be a positive integer"))
+    if (!parsed.success) return res.status(400).json(withRequestId(Errors.validation("id must be a positive integer"), req.requestId))
     const { id } = parsed.data
     try {
         const { rows } = await pool.query(
             "DELETE FROM projects WHERE id = $1 RETURNING id",
             [id]
         )
-        if (rows.length === 0) return res.status(404).json(Errors.notFound("Project not found"))
+        if (rows.length === 0) return res.status(404).json(withRequestId(Errors.notFound("Project not found"),req.requestId))
         return res.status(204).send()
     }
     catch (err) {
@@ -107,10 +107,10 @@ router.delete("/:id", async (req, res, next) => {
 
 router.put("/:id", async (req, res, next) => {
     const parsedParams = idSchema.safeParse(req.params)
-    if (!parsedParams.success) return res.status(400).json(Errors.validation("id must be a positive integer"))
+    if (!parsedParams.success) return res.status(400).json(withRequestId(Errors.validation("id must be a positive integer"), req.requestId))
 
     const parsedBody = createProjectSchema.safeParse(req.body)
-    if (!parsedBody.success) return res.status(400).json(Errors.validation("Invalid request body"))
+    if (!parsedBody.success) return res.status(400).json(withRequestId(Errors.validation("Invalid request body"), req.requestId))
     const { id } = parsedParams.data
     const { name, price_cents } = parsedBody.data
 
@@ -118,7 +118,7 @@ router.put("/:id", async (req, res, next) => {
     try {
         const { rows } = await pool.query("UPDATE projects SET name = $1, price_cents = $2 WHERE id = $3 RETURNING id, name, price_cents, created_at",
             [name, price_cents, id])
-        if (rows.length === 0) return res.status(404).json(Errors.notFound("Project not found"))
+        if (rows.length === 0) return res.status(404).json(withRequestId(Errors.notFound("Project not found"), req.requestId))
 
         return res.status(200).json({ data: rows[0] })
     }
