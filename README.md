@@ -30,6 +30,9 @@ API REST en **Node.js + Express + TypeScript** con **PostgreSQL (Docker)**, **te
 
 ## Quickstart
 
+Tienes 2 formas de ejecutar el proyecto:
+
+### Opción A — API local + DB en Docker (recomendado para desarrollo)
 ```bash
 npm install
 docker compose up -d db
@@ -41,11 +44,42 @@ npm run dev
 - Base URL local: `http://localhost:3000`
 - Swagger UI: `http://localhost:3000/docs/`
 
-> Nota: si tu puerto es distinto, usa el que muestre tu consola al arrancar.
+### Opción B — API + DB con Docker Compose (1 comando)
+1) Crea `.env.docker` (solo dev) con:
+```env
+DATABASE_URL=postgresql://postgres:postgres@db:5432/expense_tracker
+JWT_SECRET=dev-secret-change-me
+PORT=3000
+```
+
+2) Levanta todo:
+```bash
+npm run docker:up
+```
+
+3) Verifica:
+```bash
+curl -i http://localhost:3000/api/v1/health
+```
+
+Parar:
+```bash
+npm run docker:down
+```
+
+⚠️ Reset total (borra datos / volumen):
+```bash
+npm run docker:reset
+```
 
 ---
 
 ## Variables de entorno
+
+Este repo soporta:
+
+- **Local (Node en tu máquina):** `.env` / `.env.example` (DATABASE_URL suele ser `localhost:5433` si tu Postgres se expone en 5433).
+- **Docker Compose (api en contenedor):** `.env.docker` (DATABASE_URL debe usar `db:5432`, porque `db` es el nombre del servicio de Postgres dentro de la red de Docker).
 
 Este proyecto usa `scripts/ensure-env.mjs` para crear `.env` desde `.env.example` si falta.
 Se ejecuta automáticamente en:
@@ -68,6 +102,11 @@ JWT_SECRET=change_me_in_dev
 ---
 
 ## DB (PostgreSQL) con Docker
+
+### DB-only vs Full stack
+
+- Si solo quieres levantar **la DB**: `docker compose up -d db` (útil si ejecutas la API en local).
+- Si quieres levantar **API + DB**: `npm run docker:up` (requiere Dockerfile + servicio `api` en compose).
 
 Levantar DB:
 
@@ -454,6 +493,6 @@ npm test
 ## Roadmap (próximos pasos)
 - Expenses: filtros (from/to) + orden configurable
 - Mejoras OpenAPI: tags, examples, componentes reutilizables
-- Docker para la app + despliegue (Render/Fly.io)
+- Despliegue (Render/Fly.io) + variables de entorno prod
 - Observabilidad: logs consistentes (requestId ya implementado)
 

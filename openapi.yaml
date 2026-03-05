@@ -1,9 +1,10 @@
 openapi: 3.0.3
 info:
   title: Expense Tracker API
-  version: 1.4.0
+  version: 1.4.1
 servers:
 - url: http://localhost:3000
+  description: Local (Node) / Docker Compose
 tags:
 - name: Health
 - name: Auth
@@ -290,7 +291,7 @@ paths:
       tags:
       - Projects
     delete:
-      summary: Deletee project by id
+      summary: Delete project by id
       parameters:
       - in: path
         name: id
