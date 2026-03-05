@@ -1,9 +1,10 @@
 
 import express from "express";
 import { pool } from "../db";
-import { Errors } from "../errors";
+import { Errors, withRequestId } from "../errors";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireRole } from "../middlewares/requireRole";
+import { requestId } from "../middlewares/requestId";
 
 const router = express.Router();
 
@@ -16,7 +17,7 @@ router.get("/me", requireAuth, async (req, res, next) => {
     );
 
     if (rows.length === 0) {
-      return res.status(401).json(Errors.unauthorized("User not found"))
+      return res.status(401).json(withRequestId(Errors.unauthorized("User not found"), req.requestId))
     }
 
     return res.status(200).json({ data: rows[0] });

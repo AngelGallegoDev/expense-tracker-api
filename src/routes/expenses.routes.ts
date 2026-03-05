@@ -1,7 +1,7 @@
 import express from "express"
 import { z } from "zod"
 import { pool } from "../db"
-import { Errors } from "../errors"
+import { Errors, withRequestId } from "../errors"
 import { requireAuth } from "../middlewares/requireAuth";
 
 const router = express.Router()
@@ -31,7 +31,7 @@ const createExpenseSchema = z.object({
 
 router.get("/", requireAuth, async (req, res, next) => {
     const qParsed = paginationSchema.safeParse(req.query)
-    if (!qParsed.success) return res.status(400).json(Errors.validation("Invalid query params"))
+    if (!qParsed.success) return res.status(400).json(withRequestId(Errors.validation("Invalid query params"), req.requestId))
     const userId = req.userId!
 
     const { page, limit } = qParsed.data
@@ -53,7 +53,7 @@ router.get("/", requireAuth, async (req, res, next) => {
 })
 router.get("/:id", requireAuth, async (req, res, next) => {
     const parsedParams = idSchema.safeParse(req.params)
-    if (!parsedParams.success) return res.status(400).json(Errors.validation("Invalid id"))
+    if (!parsedParams.success) return res.status(400).json(withRequestId(Errors.validation("Invalid id"), req.requestId))
     const userId = req.userId!
     const id = parsedParams.data.id
     try {
@@ -61,7 +61,7 @@ router.get("/:id", requireAuth, async (req, res, next) => {
        FROM expenses
        WHERE id = $1 AND user_id = $2`,
             [id, userId])
-        if (rows.length === 0) return res.status(404).json(Errors.notFound("Expense not found"))
+        if (rows.length === 0) return res.status(404).json(withRequestId(Errors.notFound("Expense not found"), req.requestId))
         return res.status(200).json({ data: rows[0] })
     }
     catch (err) {
@@ -71,7 +71,7 @@ router.get("/:id", requireAuth, async (req, res, next) => {
 
 router.post("/", requireAuth, async (req, res, next) => {
     const parsed = createExpenseSchema.safeParse(req.body)
-    if (!parsed.success) return res.status(400).json(Errors.validation("Invalid request body"))
+    if (!parsed.success) return res.status(400).json(withRequestId(Errors.validation("Invalid request body"), req.requestId))
     const userId = req.userId!
 
     try {
@@ -90,7 +90,7 @@ router.post("/", requireAuth, async (req, res, next) => {
 
 router.delete("/:id", requireAuth, async (req, res, next) => {
     const p = idSchema.safeParse(req.params)
-    if (!p.success) return res.status(400).json(Errors.validation("Invalid id"))
+    if (!p.success) return res.status(400).json(withRequestId(Errors.validation("Invalid id"), req.requestId))
     const userId = req.userId!
 
     try {
@@ -98,7 +98,7 @@ router.delete("/:id", requireAuth, async (req, res, next) => {
             `DELETE FROM expenses WHERE id=$1 AND user_id=$2 RETURNING id`,
             [p.data.id, userId]
         )
-        if (r.rowCount === 0) return res.status(404).json(Errors.notFound("Expense not found"))
+        if (r.rowCount === 0) return res.status(404).json(withRequestId(Errors.notFound("Expense not found"), req.requestId))
         return res.status(204).send()
     } catch (err) {
         return next(err)
@@ -107,10 +107,10 @@ router.delete("/:id", requireAuth, async (req, res, next) => {
 
 router.patch("/:id", requireAuth, async (req, res, next) => {
     const parsedParams = idSchema.safeParse(req.params)
-    if (!parsedParams.success) return res.status(400).json(Errors.validation("id must be a positive integer"))
+    if (!parsedParams.success) return res.status(400).json(withRequestId(Errors.validation("id must be a positive integer"), req.requestId))
 
     const parsedBody = patchExpensSchema.safeParse(req.body)
-    if (!parsedBody.success) return res.status(400).json(Errors.validation("Invalid request body"))
+    if (!parsedBody.success) return res.status(400).json(withRequestId(Errors.validation("Invalid request body"), req.requestId))
     const userId = req.userId!
     const id = parsedParams.data.id
     const { amount_cents, description, occurred_at } = parsedBody.data
@@ -134,7 +134,7 @@ router.patch("/:id", requireAuth, async (req, res, next) => {
             userId,
         ]);
 
-        if (r.rowCount === 0) return res.status(404).json(Errors.notFound("Expense not found"));
+        if (r.rowCount === 0) return res.status(404).json(withRequestId(Errors.notFound("Expense not found"), req.requestId));
         return res.status(200).json({ data: r.rows[0] });
     }
     catch (err) { return next(err) }

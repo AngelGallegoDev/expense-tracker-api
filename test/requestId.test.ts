@@ -11,6 +11,13 @@ describe("requestId", () => {
     await pool.query("DELETE FROM users WHERE email = $1", [cleanupEmail]);
     cleanupEmail = null;
   });
+  it("400 validation error", async () => {
+    const res = await request(app).get("/api/v1/projects?page=0");
+    expect(res.status).toBe(400);
+    expect(res.headers["x-request-id"]).toBeDefined();
+    expect(res.body?.error?.requestId).toBe(res.headers["x-request-id"]);
+
+  })
   it("adds x-request-id header and includes requestId in 404 error body", async () => {
     const res = await request(app).get("/api/v1/__nope__");
 

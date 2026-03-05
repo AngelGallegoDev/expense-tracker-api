@@ -2,7 +2,7 @@ import express from "express"
 import { z } from "zod"
 import bcrypt from "bcryptjs"
 import { pool } from "../db"
-import { Errors } from "../errors"
+import { Errors, withRequestId } from "../errors"
 import { signAccessToken } from "../auth/jwt"
 
 const router = express.Router()
@@ -16,7 +16,7 @@ const loginSchema = registerSchema
 router.post("/register", async (req, res, next) => {
 
     const parsed = registerSchema.safeParse(req.body)
-    if (!parsed.success) return res.status(400).json(Errors.validation())
+    if (!parsed.success) return res.status(400).json(withRequestId(Errors.validation(), req.requestId))
     const { email, password } = parsed.data
 
     try {
@@ -30,7 +30,7 @@ router.post("/register", async (req, res, next) => {
     catch (err: unknown) {
         const e = err as { code?: string }
         if (e.code === "23505") {
-            return res.status(409).json(Errors.conflict("Email already in use"))
+            return res.status(409).json(withRequestId(Errors.conflict("Email already in use"), req.requestId))
         }
         return next(err)
     }
@@ -40,18 +40,18 @@ router.post("/login", async (req, res, next) => {
     try {
         
         const parsed = loginSchema.safeParse(req.body)
-        if (!parsed.success) return res.status(400).json(Errors.validation())
+        if (!parsed.success) return res.status(400).json(withRequestId(Errors.validation(), req.requestId))
 
         const { email, password } = parsed.data
         const r = await pool.query(
             "SELECT id, email, password_hash FROM users WHERE email = $1",
             [email]
         )
-        if (r.rows.length === 0) return res.status(401).json(Errors.unauthorized("Invalid credentials"))
+        if (r.rows.length === 0) return res.status(401).json(withRequestId(Errors.unauthorized("Invalid credentials"), req.requestId))
 
         const user = r.rows[0]
         const ok = await bcrypt.compare(password, user.password_hash)
-        if (!ok) return res.status(401).json(Errors.unauthorized("Invalid credentials"))
+        if (!ok) return res.status(401).json(withRequestId(Errors.unauthorized("Invalid credentials"), req.requestId))
 
         const userId = Number(user.id)
         const token = signAccessToken(userId)
