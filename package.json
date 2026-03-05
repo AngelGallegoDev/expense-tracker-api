@@ -12,7 +12,11 @@
     "predb:migrate": "node scripts/ensure-env.mjs",
     "db:migrate": "node scripts/db-migrate.mjs",
     "predb:reset": "node scripts/ensure-env.mjs",
-    "db:reset": "node scripts/db-reset.mjs --force"
+    "db:reset": "node scripts/db-reset.mjs --force",
+    "docker:up": "docker compose up --build",
+    "docker:down": "docker compose down",
+    "docker:reset": "docker compose down -v",
+    "docker:logs": "docker compose logs -f api"
   },
   "repository": {
     "type": "git",
