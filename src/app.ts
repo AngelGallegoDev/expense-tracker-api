@@ -11,10 +11,12 @@ import * as swaggerUi from "swagger-ui-express";
 import * as YAML from "yaml";
 import fs from "node:fs";
 import path from "node:path";
+import { requestLogger } from "./middlewares/requestLogger"
 
 const app = express()
 const API_PREFIX = "/api/v1"
 app.use(requestId)
+app.use(requestLogger)
 app.use(express.json())
 const openapiPath = path.join(process.cwd(), "openapi.yaml");
 const openapiDoc = YAML.parse(fs.readFileSync(openapiPath, "utf8"));
