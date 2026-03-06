@@ -5,7 +5,7 @@ API REST en **Node.js + Express + TypeScript** con **PostgreSQL (Docker)**, **te
 - Prefijo de versión: `/api/v1`
 - Swagger UI: `/docs/`
 - OpenAPI spec: `./openapi.yaml`
-- Observabilidad: todas las respuestas incluyen el header `x-request-id`; en errores también se incluye `error.requestId` para correlación.
+- Observabilidad: todas las respuestas incluyen el header `x-request-id`; en errores también se incluye `error.requestId` para correlación y cada request se registra en logs con `requestId`, `method`, `path`, `statusCode` y `durationMs`.
 
 ---
 
@@ -155,6 +155,51 @@ npm run dev
 ## API Docs (Swagger / OpenAPI)
 - **Swagger UI**: `GET /docs/`
 - **OpenAPI spec**: `./openapi.yaml`
+
+---
+
+## Observability
+
+La API soporta correlación de peticiones mediante `x-request-id` y deja un log por request al terminar la respuesta.
+
+### Qué hace
+- Si el cliente envía `x-request-id`, la API reutiliza ese valor.
+- Si el cliente no lo envía, la API genera uno.
+- Todas las respuestas devuelven el header `x-request-id`.
+- Las respuestas de error incluyen además `error.requestId` en el body.
+- El servidor registra cada request con:
+  - `requestId`
+  - `method`
+  - `path`
+  - `statusCode`
+  - `durationMs`
+
+### Ejemplo manual
+```bash
+curl -i -H "x-request-id: manual-400" "http://localhost:3000/api/v1/projects?page=0"
+```
+
+Respuesta esperada (400):
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "...",
+    "requestId": "manual-400"
+  }
+}
+```
+
+Log esperado en servidor (formato aproximado):
+```txt
+{
+  requestId: 'manual-400',
+  method: 'GET',
+  path: '/api/v1/projects?page=0',
+  statusCode: 400,
+  durationMs: 12
+}
+```
 
 ---
 
@@ -481,7 +526,7 @@ Tests de integración con **Supertest** cubriendo:
 - Users: `/api/v1/users/me`
 - Users admin-only: `GET /api/v1/users` (401/403/200)
 - Swagger UI (`/docs/`)
-- Observabilidad: requestId (`x-request-id` header + `error.requestId`) (404/401/403)
+- Observabilidad: requestId (`x-request-id` header + `error.requestId`) y request logging (`console.info`) en 200/404/400
 
 Ejecutar:
 ```bash
@@ -494,5 +539,4 @@ npm test
 - Expenses: filtros (from/to) + orden configurable
 - Mejoras OpenAPI: tags, examples, componentes reutilizables
 - Despliegue (Render/Fly.io) + variables de entorno prod
-- Observabilidad: logs consistentes (requestId ya implementado)
-
+- Observabilidad: enriquecer logs (usuario, IP, user-agent) manteniendo `requestId` como correlación base

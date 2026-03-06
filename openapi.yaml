@@ -2,6 +2,10 @@ openapi: 3.0.3
 info:
   title: Expense Tracker API
   version: 1.4.1
+  description: REST API for expense tracking with PostgreSQL, JWT auth, role-based
+    access, and request correlation via x-request-id. If the client sends x-request-id
+    the API reuses it; otherwise the server generates one. Each request is logged
+    on response finish with requestId, method, path, statusCode and durationMs.
 servers:
 - url: http://localhost:3000
   description: Local (Node) / Docker Compose
@@ -34,6 +38,8 @@ paths:
               $ref: '#/components/headers/XRequestId'
       tags:
       - Health
+      parameters:
+      - $ref: '#/components/parameters/XRequestIdRequestHeader'
   /api/v1/auth/register:
     post:
       summary: Register user
@@ -73,6 +79,8 @@ paths:
               $ref: '#/components/headers/XRequestId'
       tags:
       - Auth
+      parameters:
+      - $ref: '#/components/parameters/XRequestIdRequestHeader'
   /api/v1/auth/login:
     post:
       summary: Login (returns JWT)
@@ -112,6 +120,8 @@ paths:
               $ref: '#/components/headers/XRequestId'
       tags:
       - Auth
+      parameters:
+      - $ref: '#/components/parameters/XRequestIdRequestHeader'
   /api/v1/users/me:
     get:
       summary: Get current user
@@ -138,10 +148,13 @@ paths:
               $ref: '#/components/headers/XRequestId'
       tags:
       - Users
+      parameters:
+      - $ref: '#/components/parameters/XRequestIdRequestHeader'
   /api/v1/projects:
     get:
       summary: List projects
       parameters:
+      - $ref: '#/components/parameters/XRequestIdRequestHeader'
       - in: query
         name: page
         schema:
@@ -205,10 +218,13 @@ paths:
               $ref: '#/components/headers/XRequestId'
       tags:
       - Projects
+      parameters:
+      - $ref: '#/components/parameters/XRequestIdRequestHeader'
   /api/v1/projects/{id}:
     get:
       summary: Get project by id
       parameters:
+      - $ref: '#/components/parameters/XRequestIdRequestHeader'
       - in: path
         name: id
         required: true
@@ -248,6 +264,7 @@ paths:
     put:
       summary: Update project by id
       parameters:
+      - $ref: '#/components/parameters/XRequestIdRequestHeader'
       - in: path
         name: id
         required: true
@@ -293,6 +310,7 @@ paths:
     delete:
       summary: Delete project by id
       parameters:
+      - $ref: '#/components/parameters/XRequestIdRequestHeader'
       - in: path
         name: id
         required: true
@@ -360,6 +378,8 @@ paths:
           headers:
             x-request-id:
               $ref: '#/components/headers/XRequestId'
+      parameters:
+      - $ref: '#/components/parameters/XRequestIdRequestHeader'
   /api/v1/expenses:
     post:
       summary: Create an expense
@@ -401,6 +421,8 @@ paths:
           headers:
             x-request-id:
               $ref: '#/components/headers/XRequestId'
+      parameters:
+      - $ref: '#/components/parameters/XRequestIdRequestHeader'
     get:
       summary: List expenses (paginated)
       tags:
@@ -408,6 +430,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
+      - $ref: '#/components/parameters/XRequestIdRequestHeader'
       - in: query
         name: page
         schema:
@@ -457,6 +480,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
+      - $ref: '#/components/parameters/XRequestIdRequestHeader'
       - in: path
         name: id
         required: true
@@ -507,6 +531,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
+      - $ref: '#/components/parameters/XRequestIdRequestHeader'
       - in: path
         name: id
         required: true
@@ -563,6 +588,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
+      - $ref: '#/components/parameters/XRequestIdRequestHeader'
       - in: path
         name: id
         required: true
@@ -967,7 +993,17 @@ components:
       - meta
   headers:
     XRequestId:
-      description: Unique request identifier for correlating requests with server
-        logs.
+      description: Final request correlation identifier. Matches error.requestId in
+        error responses and the requestId field written to server logs.
+      schema:
+        type: string
+  parameters:
+    XRequestIdRequestHeader:
+      in: header
+      name: x-request-id
+      required: false
+      description: Optional client-supplied request correlation id. If omitted, the
+        server generates one. The final value is returned in response header x-request-id
+        and used in server logs.
       schema:
         type: string
