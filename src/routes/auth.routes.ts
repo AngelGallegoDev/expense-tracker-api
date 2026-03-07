@@ -8,7 +8,7 @@ import { signAccessToken } from "../auth/jwt"
 const router = express.Router()
 
 const registerSchema = z.object({
-    email: z.string().email().transform(s => s.trim().toLowerCase()),
+    email: z.string().trim().toLowerCase().email(),
     password: z.string().min(8),
 })
 const loginSchema = registerSchema

@@ -1,4 +1,4 @@
-import request from "supertest"
+ import request from "supertest"
 import { pool } from "../src/db"
 import { app } from "../src/app"
 
@@ -13,7 +13,18 @@ describe("POST /api/v1/auth/register", () => {
         expect(response.body.data).not.toHaveProperty("password_hash")
         expect(response.body.data).not.toHaveProperty("password")
         await pool.query("DELETE FROM users WHERE email = $1", [email])
+    })
+    it("user created in db with email spaces", async () => {
 
+        const rawEmail = ` TEST+${Date.now()}@mail.com `
+        const normalizedEmail = rawEmail.trim().toLowerCase()
+        const password = "12345678"
+        const response = await request(app).post("/api/v1/auth/register").send({ email: rawEmail, password })
+        expect(response.status).toBe(201)
+        expect(response.body.data).toEqual(expect.objectContaining({ email: normalizedEmail }))
+        expect(response.body.data).not.toHaveProperty("password_hash")
+        expect(response.body.data).not.toHaveProperty("password")
+        await pool.query("DELETE FROM users WHERE email = $1", [normalizedEmail])
     })
     it("POST user not email", async () => {
         const response = await request(app).post("/api/v1/auth/register").send({ email: "", password: "12345678" })
