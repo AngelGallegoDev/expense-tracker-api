@@ -31,7 +31,17 @@ const createExpenseSchema = z.object({
 
 router.get("/", requireAuth, async (req, res, next) => {
     const qParsed = paginationSchema.safeParse(req.query)
-    if (!qParsed.success) return res.status(400).json(withRequestId(Errors.validation("Invalid query params"), req.requestId))
+     if (!qParsed.success) {
+            const first = qParsed.error.issues[0]
+            const field = first?.path[0]
+    
+            const msg =
+                field === "limit"
+                    ? `limit must be an integer between 1 and ${MAX_LIMIT}`
+                    : "page must be an integer >= 1"
+    
+            return res.status(400).json(withRequestId(Errors.validation(msg), req.requestId))
+        }
     const userId = req.userId!
 
     const { page, limit } = qParsed.data
