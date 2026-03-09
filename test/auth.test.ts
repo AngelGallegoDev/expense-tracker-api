@@ -61,6 +61,22 @@ describe("POST /api/v1/auth/login", () => {
 
         await pool.query("DELETE FROM users WHERE email=$1", [email])
     })
+    it("login normalizes email with spaces and uppercase", async () => {
+        const rawEmail = ` t_${Date.now()}@MAiL.com   `
+        const normalizedEmail = rawEmail.trim().toLowerCase()
+        const password = "12345678"
+
+        await request(app).post("/api/v1/auth/register").send({ email: normalizedEmail, password }).expect(201)
+
+        const res = await request(app).post("/api/v1/auth/login").send({ email: rawEmail, password }).expect(200)
+
+        expect(res.body).toHaveProperty("data.token")
+        expect(String(res.body.data.token).split(".")).toHaveLength(3)
+        expect(res.body).toHaveProperty("data.user.email", normalizedEmail)
+        expect(res.body.data.user).not.toHaveProperty("password_hash")
+
+        await pool.query("DELETE FROM users WHERE email=$1", [normalizedEmail])
+    })
     it("401 when password is wrong", async () => {
         const email = `t_${Date.now()}@mail.com`
         const password = "12345678"
