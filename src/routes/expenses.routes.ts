@@ -53,7 +53,7 @@ router.get("/", requireAuth, async (req, res, next) => {
 })
 router.get("/:id", requireAuth, async (req, res, next) => {
     const parsedParams = idSchema.safeParse(req.params)
-    if (!parsedParams.success) return res.status(400).json(withRequestId(Errors.validation("Invalid id"), req.requestId))
+    if (!parsedParams.success) return res.status(400).json(withRequestId(Errors.validation("id must be a positive integer"), req.requestId))
     const userId = req.userId!
     const id = parsedParams.data.id
     try {
@@ -90,7 +90,7 @@ router.post("/", requireAuth, async (req, res, next) => {
 
 router.delete("/:id", requireAuth, async (req, res, next) => {
     const p = idSchema.safeParse(req.params)
-    if (!p.success) return res.status(400).json(withRequestId(Errors.validation("Invalid id"), req.requestId))
+    if (!p.success) return res.status(400).json(withRequestId(Errors.validation("id must be a positive integer"), req.requestId))
     const userId = req.userId!
 
     try {
