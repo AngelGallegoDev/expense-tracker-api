@@ -35,7 +35,7 @@ Tienes 2 formas de ejecutar el proyecto:
 ### Opción A — API local + DB en Docker (recomendado para desarrollo)
 ```bash
 npm install
-docker compose up -d db
+npm run docker:db:up
 npm run db:migrate
 npm test
 npm run dev
@@ -72,6 +72,34 @@ npm run docker:down
 npm run docker:reset
 ```
 
+### Troubleshooting Docker (Windows)
+
+Si ves alguno de estos errores:
+
+- `unknown shorthand flag: 'd' in -d`
+- `docker: unknown command: docker compose`
+
+tu instalacion expone `docker-compose` (con guion) en lugar de `docker compose`.
+Usa los scripts de npm del proyecto (`npm run docker:*`) o ejecuta:
+
+```bash
+docker-compose up -d db
+```
+
+Si ves errores de conexion al daemon, por ejemplo:
+
+- `open //./pipe/docker_engine: Access is denied`
+
+haz esto:
+
+1. Abre Docker Desktop y espera a que quede en estado `Engine running`.
+2. Abre una terminal como administrador o reinicia sesion de Windows si acabas de anadirte a `docker-users`.
+3. Verifica:
+
+```bash
+docker info
+```
+
 ---
 
 ## Variables de entorno
@@ -97,7 +125,7 @@ JWT_SECRET=change_me_in_dev
 - `DATABASE_URL`: conexión a Postgres.
 - `JWT_SECRET`: secreto para firmar/verificar JWT (necesario para endpoints protegidos).
 
-> Si tu Docker Compose publica Postgres en **5433** (ej. `0.0.0.0:5433->5432`), ajusta `DATABASE_URL` a `localhost:5433` (compruébalo con `docker compose ps`).
+> Si tu Docker Compose publica Postgres en **5433** (ej. `0.0.0.0:5433->5432`), ajusta `DATABASE_URL` a `localhost:5433` (compruébalo con `node scripts/compose.mjs ps`).
 
 ---
 
@@ -105,13 +133,13 @@ JWT_SECRET=change_me_in_dev
 
 ### DB-only vs Full stack
 
-- Si solo quieres levantar **la DB**: `docker compose up -d db` (útil si ejecutas la API en local).
+- Si solo quieres levantar **la DB**: `npm run docker:db:up` (útil si ejecutas la API en local).
 - Si quieres levantar **API + DB**: `npm run docker:up` (requiere Dockerfile + servicio `api` en compose).
 
 Levantar DB:
 
 ```bash
-docker compose up -d db
+npm run docker:db:up
 ```
 
 ### Migraciones (recomendado)
@@ -131,8 +159,8 @@ npm run db:reset
 Alternativa “bruta” borrando volúmenes:
 
 ```bash
-docker compose down -v
-docker compose up -d db
+npm run docker:reset
+npm run docker:db:up
 npm run db:migrate
 ```
 
