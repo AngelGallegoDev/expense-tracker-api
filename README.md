@@ -1,4 +1,5 @@
 # Expense Tracker API (Node + TypeScript)
+[![CI](https://github.com/AngelGallegoDev/caribbean-filament-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/AngelGallegoDev/caribbean-filament-hub/actions/workflows/ci.yml)
 
 API REST en **Node.js + Express + TypeScript** con **PostgreSQL (Docker)**, **tests (Jest + Supertest)**, **validación (Zod)**, **auth (bcrypt + JWT + roles)** y **documentación OpenAPI + Swagger UI**.
 
