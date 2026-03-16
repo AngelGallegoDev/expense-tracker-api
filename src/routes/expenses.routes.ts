@@ -7,6 +7,8 @@ import { requireAuth } from "../middlewares/requireAuth";
 const router = express.Router()
 const MAX_LIMIT = 20
 const DEFAULT_LIMIT = 10
+const DATE_ONLY_REGEX = /^\d{4}-\d{2}-\d{2}$/
+const ISO_DATETIME_REGEX = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/
 
 const idSchema = z.object({
     id: z.coerce.number().int().positive()
@@ -21,6 +23,9 @@ const patchExpensSchema = z.object({
 const paginationSchema = z.object({
     limit: z.coerce.number().int().min(1).max(MAX_LIMIT).optional().default(DEFAULT_LIMIT),
     page: z.coerce.number().int().min(1).optional().default(1),
+    from: z.string().trim().min(1).optional(),
+    to: z.string().trim().min(1).optional(),
+    order: z.enum(["asc", "desc"]).optional().default("desc"),
 })
 
 const createExpenseSchema = z.object({
@@ -29,32 +34,97 @@ const createExpenseSchema = z.object({
     occurred_at: z.coerce.date().optional(),
 })
 
+function parseDateBoundary(value: string, boundary: "from" | "to") {
+    const raw = value.trim()
+    const isDateOnly = DATE_ONLY_REGEX.test(raw)
+    const isIsoDatetime = ISO_DATETIME_REGEX.test(raw)
+
+    if (!isDateOnly && !isIsoDatetime) return null
+
+    const normalized = DATE_ONLY_REGEX.test(raw)
+        ? `${raw}T${boundary === "from" ? "00:00:00.000" : "23:59:59.999"}Z`
+        : raw
+
+    const parsed = new Date(normalized)
+    if (Number.isNaN(parsed.getTime())) return null
+
+    if (isDateOnly) {
+        const [year, month, day] = raw.split("-").map(Number)
+        if (
+            parsed.getUTCFullYear() !== year ||
+            parsed.getUTCMonth() + 1 !== month ||
+            parsed.getUTCDate() !== day
+        ) return null
+    }
+
+    return parsed
+}
+
 router.get("/", requireAuth, async (req, res, next) => {
     const qParsed = paginationSchema.safeParse(req.query)
-     if (!qParsed.success) {
-            const first = qParsed.error.issues[0]
-            const field = first?.path[0]
-    
-            const msg =
-                field === "limit"
-                    ? `limit must be an integer between 1 and ${MAX_LIMIT}`
-                    : "page must be an integer >= 1"
-    
-            return res.status(400).json(withRequestId(Errors.validation(msg), req.requestId))
-        }
-    const userId = req.userId!
+    if (!qParsed.success) {
+        const first = qParsed.error.issues[0]
+        const field = typeof first?.path[0] === "string" ? first.path[0] : undefined
 
-    const { page, limit } = qParsed.data
+        const msg =
+            field === "limit"
+                ? `limit must be an integer between 1 and ${MAX_LIMIT}`
+                : field === "page"
+                    ? "page must be an integer >= 1"
+                    : field === "order"
+                        ? "order must be either asc or desc"
+                        : field === "from" || field === "to"
+                            ? `${field} must be a valid ISO date or datetime`
+                            : "Invalid query parameters"
+
+        return res.status(400).json(withRequestId(Errors.validation(msg), req.requestId))
+    }
+    const userId = req.userId!
+    const { page, limit, from, to, order } = qParsed.data
     const offset = (page - 1) * limit
+    const fromDate = from ? parseDateBoundary(from, "from") : null
+    const toDate = to ? parseDateBoundary(to, "to") : null
+
+    if (from && !fromDate) {
+        return res.status(400).json(withRequestId(Errors.validation("from must be a valid ISO date or datetime"), req.requestId))
+    }
+    if (to && !toDate) {
+        return res.status(400).json(withRequestId(Errors.validation("to must be a valid ISO date or datetime"), req.requestId))
+    }
+    if (fromDate && toDate && fromDate > toDate) {
+        return res.status(400).json(withRequestId(Errors.validation("from must be less than or equal to to"), req.requestId))
+    }
+
+    const whereClauses = ["user_id=$1"]
+    const whereValues: Array<number | Date> = [userId]
+    let nextParam = 2
+
+    if (fromDate) {
+        whereClauses.push(`occurred_at >= $${nextParam}`)
+        whereValues.push(fromDate)
+        nextParam += 1
+    }
+
+    if (toDate) {
+        whereClauses.push(`occurred_at <= $${nextParam}`)
+        whereValues.push(toDate)
+        nextParam += 1
+    }
+
+    const whereSql = whereClauses.join(" AND ")
+    const orderSql = order.toUpperCase()
 
     try {
-        const totalR = await pool.query(`SELECT COUNT(*)::int AS total FROM expenses WHERE user_id=$1`, [userId])
+        const totalR = await pool.query(
+            `SELECT COUNT(*)::int AS total FROM expenses WHERE ${whereSql}`,
+            whereValues
+        )
         const listR = await pool.query(
             `SELECT id, user_id, amount_cents, description, occurred_at, created_at
-       FROM expenses WHERE user_id=$1
-       ORDER BY occurred_at DESC, id DESC
-       LIMIT $2 OFFSET $3`,
-            [userId, limit, offset]
+       FROM expenses WHERE ${whereSql}
+       ORDER BY occurred_at ${orderSql}, id ${orderSql}
+       LIMIT $${nextParam} OFFSET $${nextParam + 1}`,
+            [...whereValues, limit, offset]
         )
         return res.json({ data: listR.rows, meta: { page, limit, total: totalR.rows[0].total } })
     } catch (err) {

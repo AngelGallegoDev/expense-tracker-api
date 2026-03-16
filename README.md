@@ -451,6 +451,9 @@ Headers:
 Query params:
 - `limit` (opcional): entero 1..20 (default 10)
 - `page` (opcional): entero >= 1 (default 1)
+- `from` (opcional): fecha o datetime ISO 8601 para filtrar `occurred_at` desde ese instante. Si envías solo fecha (`YYYY-MM-DD`), se toma desde las `00:00:00.000Z`.
+- `to` (opcional): fecha o datetime ISO 8601 para filtrar `occurred_at` hasta ese instante. Si envías solo fecha (`YYYY-MM-DD`), se toma hasta las `23:59:59.999Z`.
+- `order` (opcional): `asc` o `desc` sobre `occurred_at` (y `id` como desempate). Default `desc`.
 
 Respuestas:
 - `200` → `{ "data": [ ... ], "meta": { "page": 1, "limit": 10, "total": 5 } }`
@@ -459,7 +462,7 @@ Respuestas:
 
 Ejemplo con curl:
 ```bash
-curl -s "http://localhost:3000/api/v1/expenses?page=1&limit=10" \
+curl -s "http://localhost:3000/api/v1/expenses?page=1&limit=10&from=2024-02-01&to=2024-02-29&order=asc" \
   -H "Authorization: Bearer <JWT>"
 ```
 
@@ -565,7 +568,6 @@ npm test
 ---
 
 ## Roadmap (próximos pasos)
-- Expenses: filtros (from/to) + orden configurable
 - Mejoras OpenAPI: tags, examples, componentes reutilizables
 - Despliegue (Render/Fly.io) + variables de entorno prod
 - Observabilidad: enriquecer logs (usuario, IP, user-agent) manteniendo `requestId` como correlación base

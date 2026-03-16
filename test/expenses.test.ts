@@ -125,6 +125,91 @@ describe("GET /api/v1/expenses", () => {
 
         expect(res.body).toHaveProperty("error.code", "VALIDATION_ERROR")
     })
+
+    it("filters by from/to without breaking pagination metadata", async () => {
+        const a = await registerAndLogin()
+
+        const seed = [
+            { description: "jan", occurred_at: "2024-01-10T08:00:00.000Z" },
+            { description: "feb", occurred_at: "2024-02-15T08:00:00.000Z" },
+            { description: "mar", occurred_at: "2024-03-20T08:00:00.000Z" },
+        ]
+        const createdIds: number[] = []
+
+        for (const expense of seed) {
+            const r = await request(app).post("/api/v1/expenses")
+                .set("Authorization", `Bearer ${a.token}`)
+                .send({ amount_cents: 100, ...expense })
+                .expect(201)
+            createdIds.push(r.body.data.id)
+        }
+
+        const p1 = await request(app)
+            .get("/api/v1/expenses?from=2024-02-01&to=2024-03-31&limit=1&page=1")
+            .set("Authorization", `Bearer ${a.token}`)
+            .expect(200)
+
+        expect(p1.body.meta.total).toBe(2)
+        expect(p1.body.data).toHaveLength(1)
+        expect(p1.body.data[0].description).toBe("mar")
+
+        const p2 = await request(app)
+            .get("/api/v1/expenses?from=2024-02-01&to=2024-03-31&limit=1&page=2")
+            .set("Authorization", `Bearer ${a.token}`)
+            .expect(200)
+
+        expect(p2.body.meta.total).toBe(2)
+        expect(p2.body.data).toHaveLength(1)
+        expect(p2.body.data[0].description).toBe("feb")
+
+        await pool.query("DELETE FROM expenses WHERE id = ANY($1::int[])", [createdIds])
+    })
+
+    it("supports configurable ascending order within the user's expenses", async () => {
+        const a = await registerAndLogin()
+        const b = await registerAndLogin()
+
+        const aOlder = await request(app).post("/api/v1/expenses")
+            .set("Authorization", `Bearer ${a.token}`)
+            .send({ amount_cents: 100, description: "older", occurred_at: "2024-02-01T08:00:00.000Z" })
+            .expect(201)
+
+        const aNewer = await request(app).post("/api/v1/expenses")
+            .set("Authorization", `Bearer ${a.token}`)
+            .send({ amount_cents: 100, description: "newer", occurred_at: "2024-02-03T08:00:00.000Z" })
+            .expect(201)
+
+        const otherUser = await request(app).post("/api/v1/expenses")
+            .set("Authorization", `Bearer ${b.token}`)
+            .send({ amount_cents: 100, description: "not-visible", occurred_at: "2024-01-01T08:00:00.000Z" })
+            .expect(201)
+
+        const res = await request(app)
+            .get("/api/v1/expenses?order=asc&limit=10&page=1")
+            .set("Authorization", `Bearer ${a.token}`)
+            .expect(200)
+
+        const relevantDescriptions = res.body.data
+            .filter((e: any) => ["older", "newer"].includes(e.description))
+            .map((e: any) => e.description)
+
+        expect(relevantDescriptions).toEqual(["older", "newer"])
+        expect(res.body.data.some((e: any) => e.description === "not-visible")).toBe(false)
+        expect(res.body.meta.total).toBe(2)
+
+        await pool.query("DELETE FROM expenses WHERE id = ANY($1::int[])", [[aOlder.body.data.id, aNewer.body.data.id, otherUser.body.data.id]])
+    })
+
+    it("400 when from is after to", async () => {
+        const { token } = await registerAndLogin()
+
+        const res = await request(app)
+            .get("/api/v1/expenses?from=2024-03-10&to=2024-03-01")
+            .set("Authorization", `Bearer ${token}`)
+            .expect(400)
+
+        expect(res.body).toHaveProperty("error.code", "VALIDATION_ERROR")
+    })
 })
 describe("GET /api/v1/expenses/:id", () => {
     it("404 when trying to read someone else's expense", async () => {
